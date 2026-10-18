@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>簡易間取り・家具配置シミュレーター</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; height: 100vh; display: flex; font-family: system-ui, "Meiryo", sans-serif; color: #222; }
+  #sidebar { width: 310px; padding: 16px; background: #f3f4f6; border-right: 1px solid #d1d5db; overflow-y: auto; flex-shrink: 0; }
+  #sidebar h1 { font-size: 16px; margin: 0 0 12px; }
+  #sidebar h2 { font-size: 13px; margin: 18px 0 8px; color: #555; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
+  label { display: block; font-size: 13px; margin-bottom: 10px; }
+  input[type=range] { width: 100%; }
+  button { padding: 6px 10px; margin: 0 4px 6px 0; border: 1px solid #9ca3af; background: #fff; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  button:hover:not(:disabled) { background: #e5e7eb; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .cat { background: #fff; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 8px 2px; margin-bottom: 6px; }
+  .cat b { display: block; font-size: 12px; margin-bottom: 4px; }
+  .cat .sw, .std .sw { display: inline-block; width: 10px; height: 10px; border: 1px solid #555; margin-right: 6px; vertical-align: middle; }
+  #tabs button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .std { display: block; width: 100%; text-align: left; margin: 0 0 5px; padding: 6px 8px; }
+  .std small { color: #666; display: block; }
+  #detail { background: #fff; border: 1px solid #d1d5db; border-radius: 6px; padding: 10px; font-size: 13px; }
+  #detail .empty { color: #888; }
+  #detail table { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+  #detail td { padding: 2px 0; vertical-align: top; }
+  #detail td:first-child { color: #666; width: 64px; }
+  .num { display: flex; gap: 8px; margin-bottom: 4px; }
+  .num label { flex: 1; margin: 0; font-size: 12px; }
+  .num input { width: 100%; padding: 4px; }
+  .hint { font-size: 11px; color: #777; margin-bottom: 8px; }
+  a.link { display: block; text-align: center; padding: 8px; color: #fff; border-radius: 4px; text-decoration: none; font-size: 12px; margin-bottom: 6px; }
+  a.amazon { background: #f59e0b; color: #111; }
+  a.rakuten { background: #bf0000; }
+  #main { flex: 1; display: flex; flex-direction: column; background: #fff; min-width: 0; }
+  #stage { flex: 1; position: relative; min-height: 0; }
+  #dock { flex-shrink: 0; min-height: 96px; padding: 8px 16px; border-top: 1px solid #d1d5db; background: #f9fafb; display: flex; align-items: center; }
+  #dockEmpty { width: 100%; text-align: center; color: #777; font-size: 13px; }
+  #dockBody { display: none; width: 100%; align-items: center; gap: 24px; flex-wrap: wrap; }
+  #dockBody.on { display: flex; }
+  #detailL { flex: 1 1 340px; min-width: 300px; font-size: 13px; }
+  #detailL .dtitle { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  #detailL .dtitle span.sz { color: #666; font-size: 12px; }
+  #detailL .num { max-width: 420px; margin: 0; }
+  #dockC { display: flex; gap: 8px; flex-shrink: 0; }
+  #dockC button { margin: 0; padding: 10px 16px; font-size: 13px; }
+  #detailR { display: flex; flex-direction: column; gap: 6px; width: 260px; flex-shrink: 0; }
+  #detailR a.link { margin: 0; }
+  #toast { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%) translateY(10px); background: rgba(17,24,39,.92); color: #fff; padding: 10px 18px; border-radius: 6px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #info { font-size: 11px; color: #555; margin-top: 8px; line-height: 1.5; }
+  #modal3d { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; }
+  #modal3d.open { display: flex; }
+  #box3d { position: relative; width: 92vw; height: 90vh; background: #dfe7ee; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  #view3d { width: 100%; height: 100%; display: block; }
+  #close3d { position: absolute; top: 12px; right: 12px; z-index: 2; padding: 8px 14px; font-size: 14px; background: #fff; }
+  #save3d { position: absolute; top: 12px; right: 190px; z-index: 2; padding: 8px 14px; font-size: 14px; background: #fff; }
+  #help3d { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: #334; background: rgba(255,255,255,.7); padding: 4px 8px; border-radius: 4px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<div id="sidebar">
+  <h1>間取り・家具配置</h1>
+  <h2>部屋の寸法</h2>
+  <label>幅: <b id="wVal">4000</b> mm
+    <input id="w" type="range" min="2000" max="8000" step="100" value="4000"></label>
+  <label>奥行き: <b id="dVal">3000</b> mm
+    <input id="d" type="range" min="2000" max="8000" step="100" value="3000"></label>
+  <label>天井高: <b id="hVal">2400</b> mm
+    <input id="rh" type="range" min="2000" max="3500" step="50" value="2400"></label>
+  <label>グリッド吸着単位:
+    <select id="snapSel" style="width:100%;padding:4px">
+      <option value="50">50mm</option>
+      <option value="100" selected>100mm（デフォルト）</option>
+      <option value="455">455mm（半間）</option>
+      <option value="910">910mm（尺モジュール）</option>
+    </select></label>
+  <button id="save" style="width:100%">間取り図を画像として保存（PNG）</button>
+  <button id="open3d" style="width:100%">3Dビューで確認</button>
+
+  <h2>部屋の構造・柱</h2>
+  <div id="structBtns"></div>
+  <div style="font-size:11px;color:#666;margin-bottom:4px">隅・壁際へドラッグ配置。L字の欠けは幅・奥行きを下のバーで変更できます。</div>
+
+  <h2>建具・ドア</h2>
+  <button id="addDoor" style="width:100%">ドアを追加（開口幅800mm）</button>
+  <div style="font-size:11px;color:#666;margin-bottom:4px">壁際をドラッグして移動。開き方・吊元は下のバーで切替。</div>
+
+  <h2>窓（採光・通風）</h2>
+  <div id="winBtns"></div>
+  <div style="font-size:11px;color:#666;margin-bottom:4px">壁際をドラッグして移動。窓の前に家具を置くと干渉判定します。</div>
+
+  <h2>オートレイアウト</h2>
+  <select id="autoType" style="width:100%;padding:4px;margin-bottom:6px">
+    <option value="work">①ワンルーム・テレワーク型</option>
+    <option value="living">②広々リビング型</option>
+    <option value="sleep">③シンプル睡眠特化型</option>
+  </select>
+  <button id="autoRun" style="width:100%">おすすめ自動配置を実行</button>
+
+  <h2>家具を追加（カテゴリ）</h2>
+  <div id="cats"></div>
+
+  <h2>おすすめの標準規格</h2>
+  <div id="tabs"></div>
+  <div id="stds"></div>
+
+  <div id="info">ドラッグで移動（100mmスナップ）／R: 回転／Delete: 削除<br>
+  選択中は周囲600mmの通路目安を表示（緑=確保 / 橙=600mm未満の隙間）。<br>
+  ※標準規格は「○○風」の定番サイズの目安値で、実際の商品寸法とは異なる場合があります。</div>
+</div>
+<div id="main">
+  <div id="stage"><canvas id="c"></canvas></div>
+  <div id="dock">
+    <div id="dockEmpty">家具をクリックして選択すると、ここでサイズ調整や検索ができます</div>
+    <div id="dockBody">
+      <div id="detailL"></div>
+      <div id="dockC">
+        <button id="rot" disabled>90°回転</button>
+        <button id="del" disabled>削除</button>
+      </div>
+      <div id="detailR"></div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="modal3d">
+  <div id="box3d">
+    <button id="close3d">閉じる（2Dに戻る）</button>
+    <button id="save3d">3D画像を保存</button>
+    <canvas id="view3d"></canvas>
+    <div id="help3d">左ドラッグ: 回転 / ホイール: ズーム / 右ドラッグ: 平行移動</div>
+  </div>
+</div>
+<script>
+// ---- カテゴリ（汎用ブロック）。q = 検索キーワード、variants = [名称, 幅, 奥行き] ----
+const CATEGORIES = [
+  { key: "desk",   label: "デスク・机",           q: "デスク",             h: 720,  color: "#e0c89a", variants: [["標準", 1200, 600]] },
+  { key: "bed",    label: "ベッド",               q: "ベッド",             h: 450,  color: "#a5b4fc", variants: [["シングル", 1000, 2000], ["セミダブル", 1200, 2000], ["ダブル", 1400, 2000]] },
+  { key: "sofa",   label: "ソファ",               q: "ソファ",             h: 800,  color: "#f9a8d4", variants: [["2人掛け", 1400, 800], ["3人掛け", 1800, 850]] },
+  { key: "shelf",  label: "収納棚・本棚",         q: "本棚",               h: 1800, color: "#86efac", variants: [["標準", 800, 400]] },
+  { key: "tv",     label: "テレビ台・ローボード", q: "テレビ台",           h: 400,  color: "#fdba74", variants: [["1200", 1200, 400], ["1500", 1500, 400]] },
+  { key: "dining", label: "ダイニングテーブル",   q: "ダイニングテーブル", h: 720,  color: "#93c5fd", variants: [["標準", 1200, 800]] },
+  { key: "table",  label: "ローテーブル",         q: "ローテーブル",       h: 380,  color: "#d8b4fe", variants: [["標準", 900, 500]] },
+  { key: "side",   label: "サイドテーブル",       q: "サイドテーブル",     h: 500,  color: "#fda4af", variants: [["標準", 400, 400]] },
+];
+const CAT = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));
+
+// ---- おすすめの標準規格（ブランド風の定番サイズ）: [ブランド風, カテゴリ, 名称, 幅, 奥行, 高さ, 色] ----
+const STANDARDS = [
+  ["無印良品風", "bed",    "木製ベッド シングル",       1030, 2020, 380,  "#d6b88a"],
+  ["無印良品風", "dining", "折りたたみテーブル",       1200, 700,  720,  "#e8d5b0"],
+  ["無印良品風", "shelf",  "スタッキングシェルフ 3段", 1220, 285,  830,  "#c9a77a"],
+  ["無印良品風", "sofa",   "2人掛けソファ",            1380, 850,  800,  "#b8c4cc"],
+  ["ニトリ風",   "sofa",   "2人掛けソファ",            1340, 800,  800,  "#a8b5a0"],
+  ["ニトリ風",   "tv",     "テレビ台 ローボード",      1500, 400,  400,  "#8b6b4a"],
+  ["ニトリ風",   "desk",   "ワークデスク",             1000, 600,  720,  "#d9c7a3"],
+  ["ニトリ風",   "bed",    "セミダブルベッド",         1230, 2000, 400,  "#b99a78"],
+  ["IKEA風",     "shelf",  "本棚 (BILLY相当)",         800,  280,  2020, "#f2f2f2"],
+  ["IKEA風",     "shelf",  "シェルフ (KALLAX相当)",    770,  390,  770,  "#e5e5e5"],
+  ["IKEA風",     "bed",    "ベッド (HEMNES相当)",      1000, 2110, 660,  "#efe6d8"],
+  ["IKEA風",     "shelf",  "チェスト 4段",             800,  480,  1000, "#d8d8d8"],
+  ["IKEA風",     "desk",   "デスク",                   1200, 600,  730,  "#cfd8e3"],
+].map(([brand, cat, name, w, d, h, color]) => ({ brand, cat, name, w, d, h, color }));
+const BRANDS = [...new Set(STANDARDS.map(p => p.brand))];
+
+let SNAP = 100;
+const AISLE = 600;
+const room = { w: 4000, d: 3000, h: 2400 };
+let doors = [], selectedDoor = null, nextDoorId = 1, doorDrag = null;
+let blocks = [], selectedBlock = null, nextBlockId = 1, blockDrag = null;
+let wins = [], selectedWin = null, nextWinId = 1, winDrag = null;
+let items = [], selected = null, nextId = 1, currentBrand = BRANDS[0];
+let scale = 0.1, ox = 0, oy = 0;
+
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const $ = id => document.getElementById(id);
+const snap = v => Math.round(v / SNAP) * SNAP;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+// ---- サイドバー: カテゴリ / 標準規格 ----
+function renderCats() {
+  $("cats").innerHTML = "";
+  CATEGORIES.forEach(c => {
+    const box = document.createElement("div");
+    box.className = "cat";
+    box.innerHTML = `<b><span class="sw" style="background:${c.color}"></span>${esc(c.label)}</b>`;
+    c.variants.forEach(([vn, w, d]) => {
+      const btn = document.createElement("button");
+      btn.textContent = `${vn === "標準" ? "追加" : vn} ${w}×${d}`;
+      btn.onclick = () => addItem({ cat: c.key, name: vn === "標準" ? c.label : `${c.label}（${vn}）`, w, d, h: c.h, color: c.color });
+      box.appendChild(btn);
+    });
+    $("cats").appendChild(box);
+  });
+}
+function renderStds() {
+  $("tabs").innerHTML = "";
+  BRANDS.forEach(b => {
+    const btn = document.createElement("button");
+    btn.textContent = b;
+    btn.className = b === currentBrand ? "active" : "";
+    btn.onclick = () => { currentBrand = b; renderStds(); };
+    $("tabs").appendChild(btn);
+  });
+  $("stds").innerHTML = "";
+  STANDARDS.filter(p => p.brand === currentBrand).forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "std";
+    btn.innerHTML = `<span class="sw" style="background:${p.color}"></span>${esc(p.name)}<small>${CAT[p.cat].label} / ${p.w} × ${p.d} × ${p.h} mm</small>`;
+    btn.onclick = () => addItem(p);
+    $("stds").appendChild(btn);
+  });
+}
+
+function addItem(p) {
+  const it = { id: nextId++, cat: p.cat, name: p.name, w: p.w, d: p.d, h: p.h, color: p.color, x: 0, y: 0 };
+  if (it.w > room.w || it.d > room.d) [it.w, it.d] = [it.d, it.w];
+  it.w = Math.min(it.w, room.w); it.d = Math.min(it.d, room.d);
+  it.x = snap((room.w - it.w) / 2);
+  it.y = snap((room.d - it.d) / 2);
+  constrain(it);
+  items.push(it);
+  select(it);
+}
+
+function constrain(it) {
+  it.x = clamp(snap(it.x), 0, Math.max(0, room.w - it.w));
+  it.y = clamp(snap(it.y), 0, Math.max(0, room.d - it.d));
+}
+
+// ---- 検索リンク生成 ----
+function searchUrls(it) {
+  const cm = mm => Math.round(mm / 10);
+  const parts = [CAT[it.cat].q, `幅${cm(it.w)}cm`, `奥行${cm(it.d)}cm`].map(encodeURIComponent);
+  const kw = parts.join("+");
+  return {
+    amazon: `https://www.amazon.co.jp/s?k=${kw}`,
+    rakuten: `https://search.rakuten.co.jp/search/mall/${kw}/`,
+  };
+}
+
+// ---- 詳細パネル ----
+function renderDetail() {
+  if (selectedDoor) { renderDoorDetail(); return; }
+  if (selectedBlock) { renderBlockDetail(); return; }
+  if (selectedWin) { renderWinDetail(); return; }
+  const it = selected;
+  $("rot").disabled = $("del").disabled = !it;
+  $("dockEmpty").style.display = it ? "none" : "block";
+  $("dockBody").classList.toggle("on", !!it);
+  if (!it) { $("detailL").innerHTML = ""; $("detailR").innerHTML = ""; return; }
+  const cat = CAT[it.cat];
+  $("detailL").innerHTML = `
+    <div class="dtitle">
+      <b>${esc(it.name)}</b><span class="sz" id="sizeTxt"></span>
+      <span style="color:#888;font-size:11px">${esc(cat.label)}</span>
+      <span id="warn" style="display:none;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 8px;font-size:12px">⚠ 他の家具と重なっています</span>
+      <span id="warnDoor" style="display:none;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 8px;font-size:12px">⚠ ドアの開閉に干渉しています</span>
+      <span id="warnBlock" style="display:none;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 8px;font-size:12px">⚠ 柱・壁の出っ張りに干渉しています</span>
+      <span id="warnWin" style="display:none;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 8px;font-size:12px"></span>
+    </div>
+    <div class="num">
+      <label>幅 W (mm)<input id="inW" type="number" min="100" max="${room.w}" step="10"></label>
+      <label>奥行 D (mm)<input id="inD" type="number" min="100" max="${room.d}" step="10"></label>
+      <label>高さ H (mm)<input id="inH" type="number" min="50" max="2400" step="10"></label>
+    </div>`;
+  $("detailR").innerHTML = `
+    <a id="lkA" class="link amazon" target="_blank" rel="noopener noreferrer"></a>
+    <a id="lkR" class="link rakuten" target="_blank" rel="noopener noreferrer"></a>`;
+  $("inW").oninput = applySize;
+  $("inD").oninput = applySize;
+  $("inH").oninput = applySize;
+  syncDetail(true);
+}
+function syncDetail(force) {
+  const it = selected; if (!it || !$("sizeTxt")) return;
+  $("sizeTxt").textContent = `W${it.w} × D${it.d} × H${it.h} mm`;
+  if (force || document.activeElement !== $("inW")) $("inW").value = it.w;
+  if (force || document.activeElement !== $("inD")) $("inD").value = it.d;
+  if (force || document.activeElement !== $("inH")) $("inH").value = it.h;
+  const u = searchUrls(it), q = CAT[it.cat].q;
+  $("lkA").href = u.amazon; $("lkA").textContent = `Amazonでこのサイズの${q}を探す`;
+  $("lkR").href = u.rakuten; $("lkR").textContent = `楽天市場でこのサイズの${q}を探す`;
+}
+function applySize() {
+  const it = selected; if (!it) return;
+  const w = parseInt($("inW").value, 10), d = parseInt($("inD").value, 10), h = parseInt($("inH").value, 10);
+  if (!(w >= 100) || !(d >= 100) || !(h >= 50)) return; // 入力途中は無視
+  it.h = Math.min(h, 2400);
+  it.w = Math.min(w, room.w); it.d = Math.min(d, room.d);
+  constrain(it);
+  syncDetail();
+  draw();
+}
+$("dock").addEventListener("focusout", () => { syncDetail(true); if (selectedDoor) syncDoor(true); if (selectedBlock) syncBlock(true); if (selectedWin) syncWin(true); });
+
+function select(it) { selected = it; selectedDoor = null; selectedBlock = null; selectedWin = null; renderDetail(); draw(); }
+function selectDoor(dr) { selected = null; selectedDoor = dr; selectedBlock = null; selectedWin = null; renderDetail(); draw(); }
+function selectBlock(b) { selected = null; selectedDoor = null; selectedBlock = b; selectedWin = null; renderDetail(); draw(); }
+function selectWin(w) { selected = null; selectedDoor = null; selectedBlock = null; selectedWin = w; renderDetail(); draw(); }
+
+function rotate() {
+  if (selectedBlock) {
+    const b = selectedBlock;
+    if (b.d > room.w || b.w > room.d) return;
+    [b.w, b.d] = [b.d, b.w];
+    clampBlock(b); syncBlock(true); draw();
+    return;
+  }
+  if (!selected) return;
+  const it = selected;
+  [it.w, it.d] = [it.d, it.w];
+  if (it.w > room.w || it.d > room.d) { [it.w, it.d] = [it.d, it.w]; return; }
+  constrain(it); syncDetail(true); draw();
+}
+function remove() {
+  if (selectedDoor) { doors = doors.filter(d => d !== selectedDoor); select(null); return; }
+  if (selectedBlock) { blocks = blocks.filter(b => b !== selectedBlock); select(null); return; }
+  if (selectedWin) { wins = wins.filter(w => w !== selectedWin); select(null); return; }
+  if (!selected) return;
+  items = items.filter(i => i !== selected);
+  select(null);
+}
+$("rot").onclick = rotate;
+$("del").onclick = remove;
+window.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if (e.key === "r" || e.key === "R") rotate();
+  if (e.key === "Delete" || e.key === "Backspace") remove();
+});
+
+function onRoomChange() {
+  room.w = +$("w").value; room.d = +$("d").value;
+  $("wVal").textContent = room.w; $("dVal").textContent = room.d;
+  doors.forEach(clampDoor);
+  blocks.forEach(clampBlock);
+  wins.forEach(clampWin);
+  if (selectedWin) syncWin();
+  if (selectedDoor) syncDoor();
+  items.forEach(it => {
+    if (it.w > room.w && it.d <= room.w && it.w <= room.d) [it.w, it.d] = [it.d, it.w];
+    it.w = Math.min(it.w, room.w); it.d = Math.min(it.d, room.d);
+    constrain(it);
+  });
+  if (selected) { $("inW").max = room.w; $("inD").max = room.d; syncDetail(true); }
+  draw();
+}
+$("w").oninput = $("d").oninput = onRoomChange;
+
+function resize() {
+  const r = cv.parentElement.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = r.width * dpr; cv.height = r.height * dpr;
+  draw();
+}
+window.addEventListener("resize", resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe($("stage"));
+function layout() {
+  const W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1, pad = 50 * dpr;
+  scale = Math.min((W - pad * 2) / room.w, (H - pad * 2) / room.d);
+  ox = (W - room.w * scale) / 2; oy = (H - room.d * scale) / 2;
+}
+
+// AABB判定: 他の家具と1mmでも重なっていれば true（接しているだけは false）
+function overlaps(it) {
+  return items.some(o => o !== it &&
+    it.x < o.x + o.w && it.x + it.w > o.x &&
+    it.y < o.y + o.d && it.y + it.d > o.y);
+}
+function updateWarn() {
+  const el = $("warn");
+  if (el) el.style.display = selected && overlaps(selected) ? "inline-block" : "none";
+  const ed = $("warnDoor");
+  if (ed) ed.style.display = selected && doorHit(selected) ? "inline-block" : "none";
+  const eb = $("warnBlock");
+  if (eb) eb.style.display = selected && blockHit(selected) ? "inline-block" : "none";
+  const ew = $("warnWin");
+  if (ew) {
+    const msgs = [...new Set((selected ? winIssues(selected) : []).map(wn =>
+      wn.kind === "floor" ? "⚠ 掃き出し窓（出入口）を塞いでいます" : "⚠ 腰高窓を塞いでいます（採光遮断）"))];
+    ew.textContent = msgs.join(" ／ ");
+    ew.style.display = msgs.length ? "inline-block" : "none";
+  }
+}
+
+// 選択家具の4辺について、最寄りの壁/他家具までの隙間(mm)を返す
+function gaps(it) {
+  const o = [...items.filter(i => i !== it), ...blocks];
+  const ovY = i => i.y < it.y + it.d && i.y + i.d > it.y;
+  const ovX = i => i.x < it.x + it.w && i.x + i.w > it.x;
+  let L = it.x, R = room.w - (it.x + it.w), T = it.y, B = room.d - (it.y + it.d);
+  o.forEach(i => {
+    if (ovY(i)) {
+      if (i.x + i.w <= it.x) L = Math.min(L, it.x - (i.x + i.w));
+      if (i.x >= it.x + it.w) R = Math.min(R, i.x - (it.x + it.w));
+    }
+    if (ovX(i)) {
+      if (i.y + i.d <= it.y) T = Math.min(T, it.y - (i.y + i.d));
+      if (i.y >= it.y + it.d) B = Math.min(B, i.y - (it.y + it.d));
+    }
+  });
+  return { L, R, T, B };
+}
+
+function draw() {
+  layout();
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  const X = v => ox + v * scale, Y = v => oy + v * scale;
+  ctx.fillStyle = "#fafafa";
+  ctx.fillRect(X(0), Y(0), room.w * scale, room.d * scale);
+  const line = (mm, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = dpr; ctx.beginPath();
+    for (let x = 0; x <= room.w; x += mm) { ctx.moveTo(X(x), Y(0)); ctx.lineTo(X(x), Y(room.d)); }
+    for (let y = 0; y <= room.d; y += mm) { ctx.moveTo(X(0), Y(y)); ctx.lineTo(X(room.w), Y(y)); }
+    ctx.stroke();
+  };
+  if (SNAP <= 100) {
+    if (SNAP * scale >= 4 * dpr) line(SNAP, "#ececec");
+    line(500, "#c8c8c8");
+  } else {
+    line(SNAP, "#c8c8c8");
+  }
+  ctx.strokeStyle = "#333"; ctx.lineWidth = 4 * dpr;
+  ctx.strokeRect(X(0), Y(0), room.w * scale, room.d * scale);
+  ctx.fillStyle = "#333"; ctx.font = `${12 * dpr}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+  ctx.fillText(room.w + " mm", X(room.w / 2), Y(0) - 14 * dpr);
+  ctx.save(); ctx.translate(X(0) - 16 * dpr, Y(room.d / 2)); ctx.rotate(-Math.PI / 2);
+  ctx.fillText(room.d + " mm", 0, 0); ctx.restore();
+
+  // クリアランスガイド
+  if (selected) {
+    const it = selected;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(X(0), Y(0), room.w * scale, room.d * scale); ctx.clip();
+    ctx.fillStyle = "rgba(37,99,235,0.07)";
+    ctx.fillRect(X(it.x - AISLE), Y(it.y - AISLE), (it.w + AISLE * 2) * scale, (it.d + AISLE * 2) * scale);
+    ctx.setLineDash([6 * dpr, 4 * dpr]); ctx.strokeStyle = "rgba(37,99,235,0.6)"; ctx.lineWidth = dpr;
+    ctx.strokeRect(X(it.x - AISLE), Y(it.y - AISLE), (it.w + AISLE * 2) * scale, (it.d + AISLE * 2) * scale);
+    ctx.restore();
+  }
+
+  // 構造物（柱・PS・欠け）: コンクリート風の濃グレー＋斜線ハッチング、太い黒枠
+  blocks.forEach(b => {
+    const x = X(b.x), y = Y(b.y), w = b.w * scale, h = b.d * scale;
+    ctx.fillStyle = "#718096"; ctx.fillRect(x, y, w, h);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.strokeStyle = "rgba(0,0,0,0.28)"; ctx.lineWidth = dpr; ctx.beginPath();
+    for (let k = -h; k < w; k += 8 * dpr) { ctx.moveTo(x + k, y + h); ctx.lineTo(x + k + h, y); }
+    ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 3 * dpr; ctx.strokeRect(x, y, w, h);
+    if (b === selectedBlock) {
+      ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 2 * dpr;
+      ctx.strokeRect(x - 3 * dpr, y - 3 * dpr, w + 6 * dpr, h + 6 * dpr);
+    }
+    if (w > 30 * dpr && h > 14 * dpr) {
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+      const txt = (t, cy, fs) => {
+        ctx.font = `700 ${fs}px sans-serif`;
+        ctx.lineWidth = 3 * dpr; ctx.strokeStyle = "rgba(0,0,0,0.6)";
+        ctx.strokeText(t, x + w / 2, cy, w - 4 * dpr);
+        ctx.fillStyle = "#fff"; ctx.fillText(t, x + w / 2, cy, w - 4 * dpr);
+      };
+      if (h >= 34 * dpr) { txt(b.label, y + h / 2 - 7 * dpr, 12 * dpr); txt(`${b.w}×${b.d}`, y + h / 2 + 8 * dpr, 10 * dpr); }
+      else txt(`${b.label} ${b.w}×${b.d}`, y + h / 2, 10 * dpr);
+    }
+  });
+
+  items.forEach(it => {
+    const x = X(it.x), y = Y(it.y), w = it.w * scale, h = it.d * scale;
+    const hit = overlaps(it) || doorHit(it) || blockHit(it) || winHit(it);
+    ctx.fillStyle = it.color; ctx.fillRect(x, y, w, h);
+    if (hit) { ctx.fillStyle = "rgba(239, 68, 68, 0.4)"; ctx.fillRect(x, y, w, h); }
+    if (hit) {
+      ctx.strokeStyle = "#ef4444"; ctx.lineWidth = (it === selected ? 3 : 2.5) * dpr;
+      ctx.setLineDash([6 * dpr, 4 * dpr]); ctx.strokeRect(x, y, w, h); ctx.setLineDash([]);
+      if (it === selected) {
+        ctx.strokeStyle = "#dc2626"; ctx.lineWidth = dpr;
+        ctx.strokeRect(x - 3 * dpr, y - 3 * dpr, w + 6 * dpr, h + 6 * dpr);
+      }
+    } else {
+      ctx.strokeStyle = it === selected ? "#dc2626" : "#444";
+      ctx.lineWidth = (it === selected ? 3 : 1.5) * dpr;
+      ctx.strokeRect(x, y, w, h);
+    }
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    const label = (t, cy, fs) => {
+      ctx.font = `600 ${fs}px sans-serif`;
+      ctx.lineWidth = 3 * dpr; ctx.strokeStyle = "rgba(255,255,255,0.85)";
+      ctx.strokeText(t, x + w / 2, cy, w - 6 * dpr);
+      ctx.fillStyle = "#111"; ctx.fillText(t, x + w / 2, cy, w - 6 * dpr);
+    };
+    // 文字幅に合わせてフォントサイズを縮小して枠内に収める
+    const fit = (t, maxFs, minFs) => {
+      let fs = maxFs;
+      for (; fs > minFs; fs -= 0.5 * dpr) {
+        ctx.font = `600 ${fs}px sans-serif`;
+        if (ctx.measureText(t).width <= w - 8 * dpr) break;
+      }
+      return Math.max(fs, minFs);
+    };
+    const dimTxt = `${it.w}×${it.d}×H${it.h}`;
+    if (h >= 40 * dpr) {
+      const fsName = fit(it.name, 13 * dpr, 8 * dpr), fsDim = fit(dimTxt, 11 * dpr, 7 * dpr);
+      const gap = (fsName + fsDim) / 2 + 3 * dpr;
+      label(it.name, y + h / 2 - gap / 2, fsName);
+      label(dimTxt, y + h / 2 + gap / 2, fsDim);
+    } else if (h >= 18 * dpr) {
+      const t = `${it.name} ${dimTxt}`;
+      label(t, y + h / 2, fit(t, 11 * dpr, 7 * dpr));
+    }
+  });
+
+  // ドア: 開口部・開いた扉・開閉軌跡（点線アーク＋扇形）
+  doors.forEach(dr => {
+    const G = doorGeom(dr), r = dr.w * scale, sel = dr === selectedDoor;
+    const hot = items.some(it => doorSwingHits(dr, it));
+    const bx = X(G.base.x), by = Y(G.base.y), ex = X(G.endP.x), ey = Y(G.endP.y);
+    const hx = X(G.hinge.x), hy = Y(G.hinge.y);
+    const lx = X(G.hinge.x + G.s.x * dr.w), ly = Y(G.hinge.y + G.s.y * dr.w);
+    ctx.save();
+    ctx.lineCap = "butt";
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 7 * dpr;                     // 壁の開口
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+    if (sel) { ctx.strokeStyle = "#2563eb"; ctx.lineWidth = 3 * dpr; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke(); }
+    const a0 = Math.atan2(G.a.y, G.a.x);
+    const acw = (G.a.x * G.s.y - G.a.y * G.s.x) < 0;
+    const a1 = a0 + (acw ? -1 : 1) * Math.PI / 2;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.arc(hx, hy, r, a0, a1, acw); ctx.closePath();
+    ctx.fillStyle = hot ? "rgba(239,68,68,0.18)" : "rgba(245,158,11,0.12)"; ctx.fill();
+    ctx.setLineDash([5 * dpr, 4 * dpr]); ctx.lineWidth = 1.5 * dpr;
+    ctx.strokeStyle = hot ? "#ef4444" : "#b45309";
+    ctx.beginPath(); ctx.arc(hx, hy, r, a0, a1, acw); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = hot ? "#ef4444" : (sel ? "#2563eb" : "#92400e"); ctx.lineWidth = 3 * dpr; // 開いた扉
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(lx, ly); ctx.stroke();
+    ctx.fillStyle = "#92400e"; ctx.beginPath(); ctx.arc(hx, hy, 3.5 * dpr, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  });
+
+  // 窓: 二重線サッシ＋採光ゾーン（点線）＋ラベル
+  wins.forEach(wn => {
+    const G = doorGeom({ wall: wn.wall, pos: wn.pos, w: wn.w, hinge: "start", inward: true });
+    const sel = wn === selectedWin, z = winZone(wn);
+    const hot = items.some(it => winBlocks(wn, it));
+    const bx = X(G.base.x), by = Y(G.base.y), ex = X(G.endP.x), ey = Y(G.endP.y);
+    const nx = G.inward.x, ny = G.inward.y, off = 2.5 * dpr;
+    ctx.save();
+    ctx.fillStyle = hot ? "rgba(239,68,68,0.10)" : "rgba(96,165,250,0.08)";
+    ctx.fillRect(X(z.x), Y(z.y), z.w * scale, z.d * scale);
+    ctx.setLineDash([4 * dpr, 4 * dpr]); ctx.lineWidth = dpr;
+    ctx.strokeStyle = hot ? "rgba(239,68,68,0.85)" : "rgba(96,165,250,0.9)";
+    ctx.strokeRect(X(z.x), Y(z.y), z.w * scale, z.d * scale);
+    ctx.setLineDash([]); ctx.lineCap = "butt";
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 8 * dpr;                    // 壁の開口
+    ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+    ctx.strokeStyle = sel ? "#2563eb" : "#60a5fa"; ctx.lineWidth = (sel ? 2.5 : 1.8) * dpr;
+    ctx.beginPath();
+    [-1, 1].forEach(s => {                                               // 二重線サッシ
+      ctx.moveTo(bx + nx * off * s, by + ny * off * s); ctx.lineTo(ex + nx * off * s, ey + ny * off * s);
+    });
+    [[bx, by], [ex, ey]].forEach(([px, py]) => {                         // 両端の縦枠
+      ctx.moveTo(px - nx * off * 1.4, py - ny * off * 1.4); ctx.lineTo(px + nx * off * 1.4, py + ny * off * 1.4);
+    });
+    ctx.stroke();
+    const txt = `${wn.label} ${wn.w}×H${wn.h}` + (wn.sill ? `（腰${wn.sill}）` : "");
+    ctx.font = `600 ${10 * dpr}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    const half = nx !== 0 ? ctx.measureText(txt).width / 2 + 8 * dpr : 14 * dpr;   // 左右の壁は文字が壁に被らないようずらす
+    const tx = (bx + ex) / 2 + nx * (nx !== 0 ? half : 14 * dpr), ty = (by + ey) / 2 + ny * 14 * dpr;
+    ctx.lineWidth = 3 * dpr; ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.strokeText(txt, tx, ty);
+    ctx.fillStyle = "#1e40af"; ctx.fillText(txt, tx, ty);
+    ctx.restore();
+  });
+
+  // 隙間の数値表示
+  if (selected) {
+    const it = selected, g = gaps(it);
+    const tag = (txt, px, py, gap) => {
+      const ok = gap === 0 || gap >= AISLE;
+      ctx.font = `600 ${10 * dpr}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      const tw = ctx.measureText(txt).width + 8 * dpr;
+      ctx.fillStyle = ok ? "rgba(22,163,74,0.9)" : "rgba(234,88,12,0.95)";
+      ctx.fillRect(px - tw / 2, py - 8 * dpr, tw, 16 * dpr);
+      ctx.fillStyle = "#fff"; ctx.fillText(txt, px, py);
+    };
+    const cx = X(it.x + it.w / 2), cy = Y(it.y + it.d / 2);
+    tag(g.L + "", X(it.x) - (g.L * scale) / 2, cy, g.L);
+    tag(g.R + "", X(it.x + it.w) + (g.R * scale) / 2, cy, g.R);
+    tag(g.T + "", cx, Y(it.y) - (g.T * scale) / 2, g.T);
+    tag(g.B + "", cx, Y(it.y + it.d) + (g.B * scale) / 2, g.B);
+  }
+  updateWarn();
+}
+
+// ---- ドラッグ操作 ----
+let drag = null;
+function toMM(e) {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  return { x: ((e.clientX - r.left) * dpr - ox) / scale, y: ((e.clientY - r.top) * dpr - oy) / scale };
+}
+cv.addEventListener("pointerdown", e => {
+  const p = toMM(e);
+  const hit = [...items].reverse().find(it => p.x >= it.x && p.x <= it.x + it.w && p.y >= it.y && p.y <= it.y + it.d);
+  if (hit) {
+    items = items.filter(i => i !== hit); items.push(hit);
+    drag = { it: hit, dx: p.x - hit.x, dy: p.y - hit.y };
+    cv.setPointerCapture(e.pointerId);
+  }
+  if (!hit) {
+    const b = blockAt(p);
+    if (b) {
+      blockDrag = { b, dx: p.x - b.x, dy: p.y - b.y }; cv.setPointerCapture(e.pointerId);
+      if (b !== selectedBlock) selectBlock(b); else draw();
+      return;
+    }
+    const dr = doorAt(p);
+    if (dr) {
+      doorDrag = dr; cv.setPointerCapture(e.pointerId);
+      if (dr !== selectedDoor) selectDoor(dr); else draw();
+      return;
+    }
+  }
+  if (!hit) {
+    const wn = winAt(p);
+    if (wn) {
+      winDrag = wn; cv.setPointerCapture(e.pointerId);
+      if (wn !== selectedWin) selectWin(wn); else draw();
+      return;
+    }
+  }
+  if (hit !== selected || selectedDoor || selectedBlock || selectedWin) select(hit || null); else draw();
+});
+cv.addEventListener("pointermove", e => {
+  if (blockDrag) {
+    const p = toMM(e);
+    blockDrag.b.x = p.x - blockDrag.dx; blockDrag.b.y = p.y - blockDrag.dy;
+    clampBlock(blockDrag.b); draw(); return;
+  }
+  if (winDrag) { moveWin(winDrag, toMM(e)); draw(); return; }
+  if (doorDrag) { moveDoor(doorDrag, toMM(e)); draw(); return; }
+  if (!drag) return;
+  const p = toMM(e);
+  drag.it.x = p.x - drag.dx; drag.it.y = p.y - drag.dy;
+  constrain(drag.it);
+  draw();
+});
+cv.addEventListener("pointerup", () => {
+  drag = null;
+  blockDrag = null;
+  if (winDrag) { winDrag = null; if (selectedWin) syncWin(true); }
+  if (doorDrag) { doorDrag = null; if (selectedDoor) syncDoor(true); }
+});
+
+$("snapSel").onchange = () => {
+  SNAP = +$("snapSel").value;
+  items.forEach(constrain);
+  blocks.forEach(clampBlock);
+  draw();
+};
+
+$("save").onclick = () => {
+  const out = document.createElement("canvas");
+  out.width = cv.width; out.height = cv.height;
+  const o = out.getContext("2d");
+  o.fillStyle = "#ffffff"; o.fillRect(0, 0, out.width, out.height);
+  o.drawImage(cv, 0, 0);
+  const n = new Date(), p = v => String(v).padStart(2, "0");
+  const name = `floorplan_${n.getFullYear()}${p(n.getMonth() + 1)}${p(n.getDate())}_${p(n.getHours())}${p(n.getMinutes())}.png`;
+  out.toBlob(blob => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, "image/png");
+};
+
+// ---- 3D 鳥瞰プレビュー (Three.js, 単位: mm) ----
+let WALL_H = 2400; // 天井高スライダー(room.h)と連動
+let three = null;
+
+function initThree() {
+  const canvas = $("view3d");
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xdfe7ee);
+  const camera = new THREE.PerspectiveCamera(45, 1, 50, 100000);
+  const controls = new THREE.OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.7);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  scene.add(sun, sun.target);
+  const group = new THREE.Group();
+  scene.add(group);
+  three = { renderer, scene, camera, controls, sun, group, running: false };
+}
+
+// カテゴリ別の簡易形状。原点=設置面の中心(床上)。2Dの w,d,h をそのまま基準にする
+function buildFurniture(it, hit) {
+  const g = new THREE.Group();
+  const { w, d } = it;
+  const h = Math.max(it.h, 10);
+  const tone = (dl) => new THREE.Color(it.color).offsetHSL(0, 0, dl);
+  const mat = (c) => new THREE.MeshStandardMaterial({
+    color: c, emissive: hit ? 0xef4444 : 0x000000, emissiveIntensity: hit ? 0.35 : 0,
+  });
+  // 寸法(sx,sy,sz)・中心座標(cx, 底面y, cz)で箱を追加
+  const part = (parent, sx, sy, sz, cx, by, cz, c) => {
+    if (sx <= 0 || sy <= 0 || sz <= 0) return;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat(c));
+    m.position.set(cx, by + sy / 2, cz);
+    m.castShadow = m.receiveShadow = true;
+    parent.add(m);
+  };
+
+  switch (it.cat) {
+    case "bed": {
+      // 長辺方向を前後(z)に取り、ヘッドボードは -z 端（横長なら -x 端）
+      const L = Math.max(w, d), Wd = Math.min(w, d);
+      const inner = new THREE.Group();
+      if (w > d) inner.rotation.y = Math.PI / 2;
+      const baseH = h * 0.55, matH = h - baseH;
+      part(inner, Wd, baseH, L, 0, 0, 0, tone(-0.15));                          // ベース土台
+      part(inner, Wd - 40, matH, L - 80, 0, baseH, 30, tone(0.18));              // マットレス
+      part(inner, Wd, h + 350, 60, 0, 0, -L / 2 + 30, tone(-0.22));              // ヘッドボード
+      const pw = Math.min(Wd * 0.7, 600);
+      part(inner, pw, 110, 320, 0, h, -L / 2 + 60 + 190, new THREE.Color(0xffffff)); // 枕
+      g.add(inner);
+      break;
+    }
+    case "desk":
+    case "table":
+    case "side":
+    case "dining": {
+      const top = Math.min(it.cat === "desk" ? 25 : 30, h);
+      const leg = it.cat === "desk" ? 40 : 60, lh = h - top, inset = 30;
+      part(g, w, top, d, 0, lh, 0, tone(0.12));                                  // 天板
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) =>
+        part(g, leg, lh, leg, sx * (w / 2 - inset - leg / 2), 0, sz * (d / 2 - inset - leg / 2), tone(-0.2)));
+      break;
+    }
+    case "sofa": {
+      // 背もたれは -z 側
+      const baseH = h * 0.28, seatTop = h * 0.5;
+      const arm = Math.min(160, w * 0.1), backT = Math.min(d * 0.28, 250);
+      part(g, w, baseH, d, 0, 0, 0, tone(-0.2));                                         // 土台
+      part(g, w - arm * 2, seatTop - baseH, d - backT, 0, baseH, backT / 2, tone(0.1));   // 座面クッション
+      part(g, w - arm * 2, h - baseH, backT, 0, baseH, -d / 2 + backT / 2, tone(-0.05));  // 背もたれ
+      [-1, 1].forEach(s =>
+        part(g, arm, h * 0.7, d, s * (w / 2 - arm / 2), 0, 0, tone(-0.1)));              // アームレスト
+      break;
+    }
+    case "shelf": {
+      const t = 20, n = h > 1400 ? 3 : 2;
+      part(g, w, h, 10, 0, 0, -d / 2 + 5, tone(-0.15));                          // 背板
+      part(g, t, h, d, -w / 2 + t / 2, 0, 0, tone(-0.1));                         // 左側板
+      part(g, t, h, d, w / 2 - t / 2, 0, 0, tone(-0.1));                          // 右側板
+      part(g, w, t, d, 0, 0, 0, tone(-0.1));                                      // 底板
+      part(g, w, t, d, 0, h - t, 0, tone(-0.1));                                  // 天板
+      for (let i = 1; i <= n; i++)                                               // 棚板
+        part(g, w - t * 2, t * 0.8, d - 10, 0, (h * i) / (n + 1), 5, tone(0.12));
+      break;
+    }
+    case "tv": {
+      part(g, w, h - 25, d, 0, 0, 0, tone(-0.05));                               // ローボード本体
+      part(g, w, Math.min(25, h), d, 0, Math.max(h - 25, 0), 0, tone(0.15));      // 天板
+      const sw = Math.min(w * 0.8, 1200), sh = sw * 0.56;
+      const standW = Math.min(sw * 0.35, 400);
+      part(g, standW, 15, Math.min(d * 0.6, 220), 0, h, 0, 0x222222);            // スタンド台座
+      part(g, 60, 70, 30, 0, h + 15, 0, 0x222222);                                // ネック
+      part(g, sw, sh, 35, 0, h + 85, 0, 0x111111);                                // 薄型テレビ(スクリーン)
+      break;
+    }
+    default:
+      part(g, w, h, d, 0, 0, 0, new THREE.Color(it.color));
+  }
+  return g;
+}
+
+function buildScene(resetCamera) {
+  const { scene, group, sun, camera, controls } = three;
+  while (group.children.length) {
+    const m = group.children.pop();
+    m.traverse(o => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) o.material.dispose();
+    });
+  }
+  WALL_H = room.h;
+  const W = room.w, D = room.d;
+  const box = (w, h, d, cx, cy, cz, mat, shadow) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    m.position.set(cx, cy, cz);
+    m.castShadow = m.receiveShadow = shadow !== false;
+    group.add(m);
+    return m;
+  };
+  // 床
+  box(W, 20, D, W / 2, -10, D / 2, new THREE.MeshStandardMaterial({ color: 0xf2efe8 }));
+  // 壁: 奥(z=0)と左(x=0)は高さ2400、手前(z=D)と右(x=W)は低く（中が見えるよう）
+  const T = 100, LOW = 150;
+  const wallMat = () => new THREE.MeshStandardMaterial({ color: 0xffffff });
+  // 壁を、ドア開口部を避けた区間ごとの箱として作る（開口上は鴨居部分を残す）
+  const run = (isX, n, a0, a1, hgt, ops) => {
+    const mk = (s, e, y0, y1) => {
+      const L = e - s, hh = y1 - y0;
+      if (L <= 0 || hh <= 0) return;
+      const c = (s + e) / 2, cy = (y0 + y1) / 2;
+      if (isX) box(L, hh, T, c, cy, n, wallMat()); else box(T, hh, L, n, cy, c, wallMat());
+    };
+    let cur = a0;
+    ops.forEach(([o0, o1, b, t]) => {
+      mk(cur, o0, 0, hgt);
+      if (b > 0) mk(o0, o1, 0, Math.min(b, hgt));   // 窓の腰壁
+      if (hgt > t) mk(o0, o1, t, hgt);               // 開口上の壁（鴨居）
+      cur = Math.max(cur, o1);
+    });
+    mk(cur, a1, 0, hgt);
+  };
+  const opsFor = wall => [
+    ...doors.filter(dr => dr.wall === wall).map(dr => [dr.pos, dr.pos + dr.w, 0, 2050]),
+    ...wins.filter(wn => wn.wall === wall).map(wn => [wn.pos, wn.pos + wn.w, wn.sill, wn.sill + wn.h]),
+  ].sort((p, q) => p[0] - q[0]);
+  run(true,  -T / 2,     -T, W + T, WALL_H, opsFor("top"));
+  run(false, -T / 2,      0, D,     WALL_H, opsFor("left"));
+  run(true,  D + T / 2,  -T, W + T, LOW,    opsFor("bottom"));
+  run(false, W + T / 2,   0, D,     LOW,    opsFor("right"));
+  // ドア枠（柱2本＋鴨居）と、2Dの軌跡と同じ90°開いたドアパネル
+  doors.forEach(dr => {
+    const G = doorGeom(dr);
+    const frameMat = () => new THREE.MeshStandardMaterial({ color: 0x8b5a2b });
+    const along = G.along, alongX = along.x !== 0;
+    const at = (off) => ({ x: G.base.x - G.inward.x * T / 2 + along.x * off, z: G.base.y - G.inward.y * T / 2 + along.y * off });
+    [-25, dr.w + 25].forEach(off => {
+      const p = at(off);
+      if (alongX) box(50, 2000, T, p.x, 1000, p.z, frameMat()); else box(T, 2000, 50, p.x, 1000, p.z, frameMat());
+    });
+    const m = at(dr.w / 2);
+    if (alongX) box(dr.w + 100, 50, T, m.x, 2025, m.z, frameMat()); else box(T, 50, dr.w + 100, m.x, 2025, m.z, frameMat());
+    const cx = G.hinge.x + G.s.x * dr.w / 2, cz = G.hinge.y + G.s.y * dr.w / 2;
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0xc89b6d });
+    if (G.s.x !== 0) box(dr.w - 20, 1980, 40, cx, 990, cz, leafMat); else box(40, 1980, dr.w - 20, cx, 990, cz, leafMat);
+  });
+  // 窓: サッシ枠（上下左右）＋半透明の水色ガラス。腰高窓は床から浮かせ、掃き出し窓は床から立ち上げる
+  wins.forEach(wn => {
+    const G = doorGeom({ wall: wn.wall, pos: wn.pos, w: wn.w, hinge: "start", inward: true });
+    const alongX = G.along.x !== 0, D3 = T * 0.8, F = 40;
+    const at = off => ({ x: G.base.x - G.inward.x * T / 2 + G.along.x * off, z: G.base.y - G.inward.y * T / 2 + G.along.y * off });
+    const frameMat = () => new THREE.MeshStandardMaterial({ color: 0xe5e7eb });
+    const bar = (len, hh, off, cy, mat, depth, noShadow) => {   // 壁方向に len の板
+      const p = at(off);
+      const m = alongX ? box(len, hh, depth, p.x, cy, p.z, mat) : box(depth, hh, len, p.x, cy, p.z, mat);
+      if (noShadow) m.castShadow = false;
+    };
+    const top = wn.sill + wn.h;
+    bar(F, wn.h, F / 2, wn.sill + wn.h / 2, frameMat(), D3);                 // 左縦枠
+    bar(F, wn.h, wn.w - F / 2, wn.sill + wn.h / 2, frameMat(), D3);          // 右縦枠
+    bar(wn.w, F, wn.w / 2, top - F / 2, frameMat(), D3);                     // 上枠
+    bar(wn.w, F, wn.w / 2, wn.sill + F / 2, frameMat(), D3);                 // 下枠
+    bar(wn.w - F * 2, wn.h - F * 2, wn.w / 2, wn.sill + wn.h / 2,            // ガラス
+      new THREE.MeshStandardMaterial({ color: 0x9fd8ff, transparent: true, opacity: 0.35, roughness: 0.1, metalness: 0.1 }), 12, true);
+    bar(12, wn.h - F * 2, wn.w / 2, wn.sill + wn.h / 2, frameMat(), D3 * 0.6); // 召し合わせの中桟
+  });
+  // 柱・PS・欠け: 床から天井高まで伸びるコンクリートの直方体
+  blocks.forEach(b => {
+    box(b.w, WALL_H, b.d, b.x + b.w / 2, WALL_H / 2, b.y + b.d / 2,
+      new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.95 }));
+  });
+  // 家具 (2Dの y は 3D の z)。2Dの w,d は回転後の寸法なので角度は不要
+  items.forEach(it => {
+    const g = buildFurniture(it, overlaps(it));
+    g.position.set(it.x + it.w / 2, 0, it.y + it.d / 2);
+    g.rotation.y = it.flip ? Math.PI : 0; // オート配置で壁に背を向ける向き（180°）
+    group.add(g);
+  });
+  // 光源をサイズに合わせる
+  const R = Math.max(W, D);
+  sun.position.set(W * 0.2 - R * 0.3, R * 1.5, D + R * 0.6);
+  sun.target.position.set(W / 2, 0, D / 2);
+  const s = sun.shadow.camera;
+  s.left = s.bottom = -R * 1.2; s.right = s.top = R * 1.2; s.near = 100; s.far = R * 5;
+  s.updateProjectionMatrix();
+  if (resetCamera) {
+    controls.target.set(W / 2, 400, D / 2);
+    camera.position.set(W / 2 + R * 0.5, R * 1.1, D + R * 0.9);
+    controls.update();
+  }
+}
+
+function resize3d() {
+  if (!three) return;
+  const c = $("view3d"), w = c.clientWidth, h = c.clientHeight;
+  three.renderer.setPixelRatio(window.devicePixelRatio || 1);
+  three.renderer.setSize(w, h, false);
+  three.camera.aspect = w / h;
+  three.camera.updateProjectionMatrix();
+}
+
+function loop3d() {
+  if (!three || !three.running) return;
+  three.controls.update();
+  three.renderer.render(three.scene, three.camera);
+  requestAnimationFrame(loop3d);
+}
+
+function open3d() {
+  if (typeof THREE === "undefined" || !THREE.OrbitControls) {
+    alert("Three.js を読み込めませんでした。ネットワーク接続を確認してください。");
+    return;
+  }
+  $("modal3d").classList.add("open");
+  if (!three) initThree();
+  resize3d();
+  buildScene(true);
+  three.running = true;
+  loop3d();
+}
+function close3d() {
+  $("modal3d").classList.remove("open");
+  if (three) three.running = false;
+}
+$("open3d").onclick = open3d;
+$("close3d").onclick = close3d;
+$("save3d").onclick = () => {
+  if (!three) return;
+  three.controls.update();
+  three.renderer.render(three.scene, three.camera); // 直後に取得して黒画面を防ぐ
+  const n = new Date(), p = v => String(v).padStart(2, "0");
+  const name = `floorplan3d_${n.getFullYear()}${p(n.getMonth() + 1)}${p(n.getDate())}_${p(n.getHours())}${p(n.getMinutes())}.png`;
+  $("view3d").toBlob(blob => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }, "image/png");
+};
+window.addEventListener("resize", resize3d);
+window.addEventListener("keydown", e => { if (e.key === "Escape") close3d(); });
+
+// ---- 窓（採光・通風） ----
+// wn = { kind: "floor"|"waist", label, wall, pos, w, sill(床から), h(窓の高さ) }
+const WINDOWS = [
+  { kind: "floor", label: "掃き出し窓", btn: "掃き出し窓（テラス窓）1600×H2000／床まで", w: 1600, sill: 0,   h: 2000 },
+  { kind: "waist", label: "腰高窓",     btn: "腰高窓（標準窓）1200×H1100／床から900",   w: 1200, sill: 900, h: 1100 },
+];
+const WIN_ZONE = 400;   // 窓の前の採光・アクセスゾーンの奥行き(mm)
+
+function clampWin(wn) {
+  const len = (wn.wall === "top" || wn.wall === "bottom") ? room.w : room.d;
+  wn.w = Math.min(wn.w, len);
+  wn.pos = clamp(wn.pos, 0, len - wn.w);
+}
+function winGeom(wn) { return doorGeom({ wall: wn.wall, pos: wn.pos, w: wn.w, hinge: "start", inward: true }); }
+function winZone(wn) {
+  const G = winGeom(wn), p = G.base;
+  const q = { x: G.endP.x + G.inward.x * WIN_ZONE, y: G.endP.y + G.inward.y * WIN_ZONE };
+  return { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y), w: Math.abs(q.x - p.x), d: Math.abs(q.y - p.y) };
+}
+// 窓の前（ゾーン）に家具 r={x,y,w,d,h} があり、窓を塞ぐか
+//  掃き出し窓: 家具の高さに関係なく出入口を塞ぐ / 腰高窓: 家具の高さが取付高さ(900mm)を超えるときだけ採光を遮る
+function winBlocks(wn, r) {
+  if (!rectsOverlap(r, winZone(wn))) return false;
+  return wn.kind === "floor" ? true : r.h > wn.sill;
+}
+function winIssues(it) { return wins.filter(wn => winBlocks(wn, it)); }
+function winHit(it) { return wins.some(wn => winBlocks(wn, it)); }
+
+function winAt(p) {
+  for (const wn of [...wins].reverse()) {
+    const G = winGeom(wn);
+    const rx = p.x - G.base.x, ry = p.y - G.base.y;
+    const t = rx * G.along.x + ry * G.along.y, n = rx * G.inward.x + ry * G.inward.y;
+    if (t >= 0 && t <= wn.w && n >= -200 && n <= 300) return wn;
+  }
+  return null;
+}
+function moveWin(wn, p) {
+  const dist = { top: p.y, bottom: room.d - p.y, left: p.x, right: room.w - p.x };
+  wn.wall = Object.keys(dist).reduce((a, b) => dist[b] < dist[a] ? b : a);
+  const coord = (wn.wall === "top" || wn.wall === "bottom") ? p.x : p.y;
+  wn.pos = snap(coord - wn.w / 2);
+  clampWin(wn);
+}
+function addWin(s) {
+  const wn = { id: nextWinId++, kind: s.kind, label: s.label, wall: "top", pos: 0, w: s.w, sill: s.sill, h: s.h };
+  // ドア・既存の窓と開口が重ならない壁を探す（上→左→右→下）
+  for (const wall of ["top", "left", "right", "bottom"]) {
+    wn.wall = wall;
+    const len = (wall === "top" || wall === "bottom") ? room.w : room.d;
+    wn.w = Math.min(s.w, len);
+    wn.pos = snap((len - wn.w) / 2);
+    clampWin(wn);
+    const clash = [...doors, ...wins].some(o => o.wall === wall && o.pos < wn.pos + wn.w && o.pos + o.w > wn.pos);
+    if (!clash) break;
+  }
+  wins.push(wn);
+  selectWin(wn);
+}
+WINDOWS.forEach(s => {
+  const btn = document.createElement("button");
+  btn.textContent = s.btn;
+  btn.style.width = "100%"; btn.style.textAlign = "left";
+  btn.onclick = () => addWin(s);
+  $("winBtns").appendChild(btn);
+});
+
+function renderWinDetail() {
+  const wn = selectedWin;
+  $("rot").disabled = true; $("del").disabled = false;
+  $("dockEmpty").style.display = "none";
+  $("dockBody").classList.add("on");
+  $("detailL").innerHTML = `
+    <div class="dtitle"><b>${esc(wn.label)}</b><span class="sz" id="winTxt"></span>
+      <span style="color:#888;font-size:11px">窓</span></div>
+    <div class="num">
+      <label>窓の幅 (mm)<input id="inWW" type="number" min="400" max="3000" step="10"></label>
+      <label>壁上の位置 (mm)<input id="inWP" type="number" min="0" step="10"></label>
+    </div>`;
+  $("detailR").innerHTML = `<div style="font-size:12px;color:#666;line-height:1.5">${
+    wn.kind === "floor"
+      ? "床まで開口。前（400mm）に家具があると出入口を塞ぐ警告が出ます。"
+      : "取付高さ900mm。高さ900mm超の家具が前にあると採光遮断の警告が出ます（ベッド・デスクは可）。"}</div>`;
+  $("inWW").oninput = $("inWP").oninput = applyWin;
+  syncWin(true);
+}
+function syncWin(force) {
+  const wn = selectedWin; if (!wn || !$("winTxt")) return;
+  const len = (wn.wall === "top" || wn.wall === "bottom") ? room.w : room.d;
+  $("winTxt").textContent = `${WALL_NAME[wn.wall]} / 幅${wn.w} × 高${wn.h}` + (wn.sill ? ` / 床から${wn.sill}` : " / 床まで開口");
+  if (force || document.activeElement !== $("inWW")) $("inWW").value = wn.w;
+  if (force || document.activeElement !== $("inWP")) { $("inWP").max = len - wn.w; $("inWP").value = wn.pos; }
+}
+function applyWin() {
+  const wn = selectedWin; if (!wn) return;
+  const w = parseInt($("inWW").value, 10), pos = parseInt($("inWP").value, 10);
+  if (!(w >= 400) || !(pos >= 0)) return; // 入力途中は無視
+  wn.w = Math.min(w, 3000); wn.pos = pos;
+  clampWin(wn);
+  syncWin();
+  draw();
+}
+
+// ---- 構造物（柱・PS・L字の欠け＝進入禁止ゾーン） ----
+const STRUCTS = [
+  { label: "柱",   btn: "柱 小 400×400",       w: 400,  d: 400,  start: 0 },
+  { label: "柱",   btn: "柱 標準 600×600",     w: 600,  d: 600,  start: 0 },
+  { label: "柱",   btn: "柱 大 800×800",       w: 800,  d: 800,  start: 0 },
+  { label: "PS",   btn: "パイプスペース 900×450", w: 900,  d: 450,  start: 1 },
+  { label: "欠け", btn: "L字の欠け（進入禁止）",  w: 1500, d: 1200, start: 2 },
+];
+function rectsOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.d && a.y + a.d > b.y;
+}
+function blockHit(it) { return blocks.some(b => rectsOverlap(it, b)); }
+function blockAt(p) {
+  return [...blocks].reverse().find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.d) || null;
+}
+function clampBlock(b) {
+  b.w = Math.min(b.w, room.w); b.d = Math.min(b.d, room.d);
+  b.x = clamp(snap(b.x), 0, room.w - b.w);
+  b.y = clamp(snap(b.y), 0, room.d - b.d);
+}
+function addBlock(s) {
+  const b = { id: nextBlockId++, label: s.label, w: s.w, d: s.d, x: 0, y: 0 };
+  b.w = Math.min(b.w, room.w); b.d = Math.min(b.d, room.d);
+  // 四隅（左上→右上→右下→左下）のうち、既存の構造物と重ならない隅を探す
+  for (let i = 0; i < 4; i++) {
+    const c = (s.start + i) % 4;
+    b.x = (c === 1 || c === 2) ? room.w - b.w : 0;
+    b.y = (c === 2 || c === 3) ? room.d - b.d : 0;
+    if (!blocks.some(o => rectsOverlap(b, o))) break;
+  }
+  blocks.push(b);
+  selectBlock(b);
+}
+STRUCTS.forEach(s => {
+  const btn = document.createElement("button");
+  btn.textContent = s.btn;
+  btn.style.width = "100%"; btn.style.textAlign = "left";
+  btn.onclick = () => addBlock(s);
+  $("structBtns").appendChild(btn);
+});
+
+function renderBlockDetail() {
+  const b = selectedBlock;
+  $("rot").disabled = false; $("del").disabled = false;
+  $("dockEmpty").style.display = "none";
+  $("dockBody").classList.add("on");
+  $("detailL").innerHTML = `
+    <div class="dtitle"><b>${esc(b.label === "欠け" ? "L字の欠け（進入禁止エリア）" : b.label === "PS" ? "パイプスペース・出っ張り" : "柱")}</b>
+      <span class="sz" id="blockTxt"></span><span style="color:#888;font-size:11px">構造物</span></div>
+    <div class="num">
+      <label>幅 W (mm)<input id="inBW" type="number" min="100" step="10"></label>
+      <label>奥行 D (mm)<input id="inBD" type="number" min="100" step="10"></label>
+    </div>`;
+  $("detailR").innerHTML = `<div style="font-size:12px;color:#666;line-height:1.5">家具が重なると赤く警告されます。<br>ドラッグで隅・壁際へ移動（グリッドにスナップ）。</div>`;
+  $("inBW").oninput = $("inBD").oninput = applyBlock;
+  $("inBW").max = room.w; $("inBD").max = room.d;
+  syncBlock(true);
+}
+function syncBlock(force) {
+  const b = selectedBlock; if (!b || !$("blockTxt")) return;
+  $("blockTxt").textContent = `${b.w} × ${b.d} mm  /  高さ: 天井まで`;
+  if (force || document.activeElement !== $("inBW")) $("inBW").value = b.w;
+  if (force || document.activeElement !== $("inBD")) $("inBD").value = b.d;
+}
+function applyBlock() {
+  const b = selectedBlock; if (!b) return;
+  const w = parseInt($("inBW").value, 10), d = parseInt($("inBD").value, 10);
+  if (!(w >= 100) || !(d >= 100)) return; // 入力途中は無視
+  b.w = Math.min(w, room.w); b.d = Math.min(d, room.d);
+  clampBlock(b);
+  syncBlock();
+  draw();
+}
+
+// ---- ドア（建具） ----
+// door = { wall: "top"|"bottom"|"left"|"right", pos: 壁上の開口開始位置(mm), w: 開口幅, inward: 内開きか, hinge: "start"|"end" }
+const WALL_NAME = { top: "上辺", bottom: "下辺", left: "左辺", right: "右辺" };
+
+function doorLen(dr) { return (dr.wall === "top" || dr.wall === "bottom") ? room.w : room.d; }
+function clampDoor(dr) {
+  const len = doorLen(dr);
+  dr.w = Math.min(dr.w, len);
+  dr.pos = clamp(dr.pos, 0, len - dr.w);
+}
+
+// 壁・吊元・開き方向から、ドアの幾何情報を求める（hinge=吊元点, a=閉じた扉の向き, s=開く向き）
+function doorGeom(dr) {
+  const W = room.w, D = room.d;
+  let base, along, inward;
+  switch (dr.wall) {
+    case "top":    base = { x: dr.pos, y: 0 }; along = { x: 1, y: 0 }; inward = { x: 0, y: 1 };  break;
+    case "bottom": base = { x: dr.pos, y: D }; along = { x: 1, y: 0 }; inward = { x: 0, y: -1 }; break;
+    case "left":   base = { x: 0, y: dr.pos }; along = { x: 0, y: 1 }; inward = { x: 1, y: 0 };  break;
+    default:       base = { x: W, y: dr.pos }; along = { x: 0, y: 1 }; inward = { x: -1, y: 0 };
+  }
+  const endP = { x: base.x + along.x * dr.w, y: base.y + along.y * dr.w };
+  const atStart = dr.hinge === "start";
+  return {
+    base, along, inward, endP,
+    hinge: atStart ? base : endP,
+    a: atStart ? along : { x: -along.x, y: -along.y },
+    s: dr.inward ? inward : { x: -inward.x, y: -inward.y },
+  };
+}
+
+// 開閉の扇形（吊元中心・半径=開口幅の四分円）と矩形 r={x,y,w,d} の重なり判定
+function doorSwingHits(dr, r) {
+  const G = doorGeom(dr);
+  const xl = r.x - G.hinge.x, xh = r.x + r.w - G.hinge.x;
+  const yl = r.y - G.hinge.y, yh = r.y + r.d - G.hinge.y;
+  const rng = v => v.x !== 0
+    ? [Math.min(v.x * xl, v.x * xh), Math.max(v.x * xl, v.x * xh)]
+    : [Math.min(v.y * yl, v.y * yh), Math.max(v.y * yl, v.y * yh)];
+  let [u0, u1] = rng(G.a), [v0, v1] = rng(G.s);
+  u0 = Math.max(u0, 0); v0 = Math.max(v0, 0);          // 扇形が存在する象限にクリップ
+  if (u1 <= u0 || v1 <= v0) return false;
+  return u0 * u0 + v0 * v0 < dr.w * dr.w;              // 吊元から最も近い点が半径内なら干渉
+}
+function doorHit(it) { return doors.some(dr => doorSwingHits(dr, it)); }
+
+// クリック判定: 開口部の帯（壁の外側200mm〜室内側300mm）
+function doorAt(p) {
+  for (const dr of [...doors].reverse()) {
+    const G = doorGeom(dr);
+    const rx = p.x - G.base.x, ry = p.y - G.base.y;
+    const t = rx * G.along.x + ry * G.along.y, n = rx * G.inward.x + ry * G.inward.y;
+    if (t >= 0 && t <= dr.w && n >= -200 && n <= 300) return dr;
+  }
+  return null;
+}
+// ドラッグ: 最も近い壁に吸着し、壁に沿ってスライド
+function moveDoor(dr, p) {
+  const dist = { top: p.y, bottom: room.d - p.y, left: p.x, right: room.w - p.x };
+  dr.wall = Object.keys(dist).reduce((a, b) => dist[b] < dist[a] ? b : a);
+  const coord = (dr.wall === "top" || dr.wall === "bottom") ? p.x : p.y;
+  dr.pos = snap(coord - dr.w / 2);
+  clampDoor(dr);
+}
+
+function hingeLabel(dr) {   // 室内から壁を見たときの左右
+  const left = (dr.wall === "top" || dr.wall === "right") ? dr.hinge === "start" : dr.hinge === "end";
+  return left ? "左吊元" : "右吊元";
+}
+
+function renderDoorDetail() {
+  const dr = selectedDoor;
+  $("rot").disabled = true; $("del").disabled = false;
+  $("dockEmpty").style.display = "none";
+  $("dockBody").classList.add("on");
+  $("detailL").innerHTML = `
+    <div class="dtitle"><b>ドア</b><span class="sz" id="doorTxt"></span>
+      <span style="color:#888;font-size:11px">建具</span></div>
+    <div class="num">
+      <label>開口幅 (mm)<input id="inDW" type="number" min="600" max="1200" step="10"></label>
+      <label>壁上の位置 (mm)<input id="inDP" type="number" min="0" step="10"></label>
+    </div>`;
+  $("detailR").innerHTML = `
+    <button id="dSwing" style="padding:9px"></button>
+    <button id="dHinge" style="padding:9px"></button>`;
+  $("inDW").oninput = $("inDP").oninput = applyDoor;
+  $("dSwing").onclick = () => { dr.inward = !dr.inward; syncDoor(true); draw(); };
+  $("dHinge").onclick = () => { dr.hinge = dr.hinge === "start" ? "end" : "start"; syncDoor(true); draw(); };
+  syncDoor(true);
+}
+function syncDoor(force) {
+  const dr = selectedDoor; if (!dr || !$("doorTxt")) return;
+  $("doorTxt").textContent = `${WALL_NAME[dr.wall]} / ${dr.inward ? "内開き" : "外開き"} / ${hingeLabel(dr)}`;
+  if (force || document.activeElement !== $("inDW")) $("inDW").value = dr.w;
+  if (force || document.activeElement !== $("inDP")) { $("inDP").max = doorLen(dr) - dr.w; $("inDP").value = dr.pos; }
+  $("dSwing").textContent = `開き方: ${dr.inward ? "内開き" : "外開き"}（切替）`;
+  $("dHinge").textContent = `吊元: ${hingeLabel(dr)}（切替）`;
+}
+function applyDoor() {
+  const dr = selectedDoor; if (!dr) return;
+  const w = parseInt($("inDW").value, 10), pos = parseInt($("inDP").value, 10);
+  if (!(w >= 600) || !(pos >= 0)) return; // 入力途中は無視
+  dr.w = clamp(w, 600, 1200); dr.pos = pos;
+  clampDoor(dr);
+  syncDoor();
+  draw();
+}
+
+$("addDoor").onclick = () => {
+  const dr = { id: nextDoorId++, wall: "top", pos: 0, w: 800, inward: true, hinge: "start" };
+  dr.pos = snap((room.w - dr.w) / 2);
+  clampDoor(dr);
+  doors.push(dr);
+  selectDoor(dr);
+};
+$("rh").oninput = () => { room.h = +$("rh").value; $("hVal").textContent = room.h; };
+
+// ---- オートレイアウト ----
+// at(W,D,placed) = 家具の「中心」の目標座標。wall=true なら壁に接する位置のみ候補。
+// prefer = 望ましい向き（長辺方向）。候補を全探索し、目標に近く・100mm以上離れ・通路が広い位置を採用。
+const AUTO_GAP = 100, AUTO_AISLE = 600;
+const AUTO_LAYOUTS = {
+  work: { name: "ワンルーム・テレワーク型", parts: [
+    { cat: "bed",   v: 0, prefer: "portrait",  wall: true, at: (W, D) => [0, 0] },
+    { cat: "desk",  v: 0, prefer: "landscape", wall: true, at: (W, D) => [W, 0] },
+    { cat: "tv",    v: 0, prefer: "landscape", wall: true, at: (W, D) => [W * 0.6, D] },
+    { cat: "shelf", v: 0, prefer: "landscape", wall: true, at: (W, D) => [0, D] },
+  ] },
+  living: { name: "広々リビング型", parts: [
+    { cat: "tv",     v: 0, prefer: "landscape", wall: true,  at: (W, D) => [W / 2, 0] },
+    { cat: "sofa",   v: 0, prefer: "landscape", wall: true,  at: (W, D) => [W / 2, D] },
+    { cat: "dining", v: 0, prefer: "landscape", wall: true,  at: (W, D) => [W, 0] },
+    { cat: "table",  v: 0, prefer: "landscape", wall: false, at: (W, D) => [W / 2, D / 2] },
+  ] },
+  sleep: { name: "シンプル睡眠特化型", parts: [
+    { cat: "bed",   v: 1, prefer: "portrait", wall: true, at: (W, D) => [W / 2, 0] },
+    { cat: "side",  v: 0, prefer: null, wall: true, at: (W, D, p) => { const b = p.find(i => i.cat === "bed"); return b ? [b.x - AUTO_GAP - 200, 200] : [200, 200]; } },
+    { cat: "side",  v: 0, prefer: null, wall: true, at: (W, D, p) => { const b = p.find(i => i.cat === "bed"); return b ? [b.x + b.w + AUTO_GAP + 200, 200] : [W - 200, 200]; } },
+    { cat: "shelf", v: 0, prefer: "landscape", wall: true, at: (W, D) => [W * 0.85, D] },
+  ] },
+};
+
+function autoCandidates(max) {
+  const s = new Set([0, Math.max(0, max)]);
+  for (let v = 0; v <= max; v += 100) s.add(v);
+  return [...s];
+}
+
+function autoPlace(spec, placed, W, D) {
+  const [, bw, bd] = CAT[spec.cat].variants[spec.v];
+  const [tx, ty] = spec.at(W, D, placed);
+  let best = null;
+  [[bw, bd], [bd, bw]].forEach(([w, d], oi) => {
+    if (oi === 1 && w === d) return;
+    if (w > W || d > D) return;
+    const mismatch = spec.prefer && w !== d && ((spec.prefer === "portrait") !== (d > w));
+    const pen = mismatch ? 2500 : 0;
+    const xs = autoCandidates(W - w), ys = autoCandidates(D - d);
+    for (const x of xs) for (const y of ys) {
+      if (spec.wall && !(x === 0 || y === 0 || x === W - w || y === D - d)) continue;
+      let ok = true, soft = 0;
+      for (const o of placed) {
+        const dx = Math.max(0, x - (o.x + o.w), o.x - (x + w));
+        const dy = Math.max(0, y - (o.y + o.d), o.y - (y + d));
+        if (dx < AUTO_GAP && dy < AUTO_GAP) { ok = false; break; }   // 100mm以上の隙間を確保
+        if (Math.max(dx, dy) < AUTO_AISLE) soft += 150;               // 通路600mm未満は減点
+      }
+      if (!ok) continue;
+      if (blocks.some(b => rectsOverlap({ x, y, w, d }, b))) continue;           // 柱・欠けには置かない
+      if (wins.some(wn => winBlocks(wn, { x, y, w, d, h: CAT[spec.cat].h }))) soft += 2500; // 窓を塞がない
+      if (doors.some(dr => doorSwingHits(dr, { x, y, w, d }))) soft += 3000; // ドアの開閉範囲は避ける
+      const sc = Math.hypot(x + w / 2 - tx, y + d / 2 - ty) + pen + soft;
+      if (!best || sc < best.sc) best = { x, y, w, d, sc };
+    }
+  });
+  return best;
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+}
+
+function runAutoLayout() {
+  const layout = AUTO_LAYOUTS[$("autoType").value];
+  if (!confirm("現在の配置をリセットして自動配置しますか？")) return;
+  const W = room.w, D = room.d, placed = [];
+  let failed = 0;
+  layout.parts.forEach(spec => {
+    const c = CAT[spec.cat], [vn, , ] = c.variants[spec.v];
+    const pos = autoPlace(spec, placed, W, D);
+    if (!pos) { failed++; return; }
+    placed.push({
+      id: nextId++, cat: c.key, name: vn === "標準" ? c.label : `${c.label}（${vn}）`,
+      w: pos.w, d: pos.d, h: c.h, color: c.color, x: pos.x, y: pos.y,
+      // 背もたれ・画面が部屋の中央を向くよう、下半分に置く家具は3Dで180°回す
+      flip: ["sofa", "tv", "shelf"].includes(c.key) && pos.y + pos.d / 2 > D / 2,
+    });
+  });
+  items = placed;
+  select(null);
+  toast(failed ? `レイアウトを自動生成しました（部屋が狭く${failed}点は配置できませんでした）`
+               : `レイアウトを自動生成しました（${layout.name}）`);
+}
+$("autoRun").onclick = runAutoLayout;
+
+renderCats();
+renderStds();
+renderDetail();
+resize();
+</script>
+</body>
+</html>
