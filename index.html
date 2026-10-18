@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>簡易間取り・家具配置シミュレーター</title>
+<title>RoomGrid｜簡易間取り・家具配置シミュレーター</title>
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; height: 100vh; display: flex; font-family: system-ui, "Meiryo", sans-serif; color: #222; }
+  body { margin: 0; height: 100vh; display: flex; flex-direction: column; font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color: #1e293b; background: #eef1f5; }
+  #app { flex: 1; display: flex; min-height: 0; }
   #sidebar { width: 310px; padding: 16px; background: #f3f4f6; border-right: 1px solid #d1d5db; overflow-y: auto; flex-shrink: 0; }
   #sidebar h1 { font-size: 16px; margin: 0 0 12px; }
   #sidebar h2 { font-size: 13px; margin: 18px 0 8px; color: #555; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
@@ -58,11 +59,63 @@
   #close3d { position: absolute; top: 12px; right: 12px; z-index: 2; padding: 8px 14px; font-size: 14px; background: #fff; }
   #save3d { position: absolute; top: 12px; right: 190px; z-index: 2; padding: 8px 14px; font-size: 14px; background: #fff; }
   #help3d { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: #334; background: rgba(255,255,255,.7); padding: 4px 8px; border-radius: 4px; }
+  /* ---- デザイン調整 ---- */
+  #hdr { flex-shrink: 0; height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 20px; background: linear-gradient(90deg, #0f1b2d, #17263c); color: #fff; box-shadow: 0 2px 8px rgba(15,27,45,.35); position: relative; z-index: 20; }
+  #hdr .logo { font-size: 20px; font-weight: 800; letter-spacing: .02em; }
+  #hdr .logo b { color: #60a5fa; font-weight: 800; }
+  #hdr .sub { font-size: 12px; color: #a9bad0; padding-left: 16px; border-left: 1px solid rgba(255,255,255,.18); }
+  #hdr .hdr-r { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 12px; color: #a9bad0; }
+  #hdr .hdr-r a { color: #fff; text-decoration: none; padding: 5px 12px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; font-size: 12px; }
+  #hdr .hdr-r a:hover { background: rgba(255,255,255,.12); }
+  #helpPanel { display: none; position: absolute; top: 58px; right: 16px; width: 340px; background: #fff; color: #1e293b; border-radius: 12px; box-shadow: 0 12px 32px rgba(15,27,45,.28); padding: 16px 18px; z-index: 30; font-size: 13px; line-height: 1.7; }
+  #helpPanel.open { display: block; }
+  #helpPanel b { display: block; margin-bottom: 6px; font-size: 14px; }
+  #helpPanel ol { margin: 0; padding-left: 20px; }
+
+  #sidebar { background: #fff; padding: 14px 16px 24px; border-right: 1px solid #e2e8f0; box-shadow: 2px 0 10px rgba(15,27,45,.05); scrollbar-width: thin; }
+  #sidebar h1 { display: none; }
+  #sidebar h2 { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: #475569; margin: 20px 0 10px; padding: 0 0 6px 8px; border-bottom: 1px solid #e2e8f0; border-left: 3px solid #3b82f6; }
+  #sidebar h2:first-of-type { margin-top: 4px; }
+  label { color: #334155; }
+  button { font-family: inherit; padding: 8px 12px; margin: 0 4px 6px 0; border: 1px solid #d3dae4; background: #fff; color: #1e293b; border-radius: 8px; box-shadow: 0 1px 2px rgba(15,27,45,.06); transition: background .15s, box-shadow .15s, border-color .15s; }
+  button:hover:not(:disabled) { background: #f1f5f9; border-color: #b6c2d2; box-shadow: 0 2px 5px rgba(15,27,45,.1); }
+  #open3d, #autoRun { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
+  #open3d:hover:not(:disabled), #autoRun:hover:not(:disabled) { background: #1d4ed8; border-color: #1d4ed8; }
+  select, input[type=number] { font-family: inherit; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #1e293b; }
+  select:focus, input[type=number]:focus { outline: 2px solid #bfdbfe; border-color: #3b82f6; }
+  input[type=range] { accent-color: #2563eb; }
+  .cat { border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; }
+  #tabs button.active { background: #0f1b2d; border-color: #0f1b2d; }
+  .std { background: #fff; }
+  #info { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; color: #64748b; }
+  #main { background: #eef1f5; }
+  #stage { background: #fff; margin: 12px 12px 0; border-radius: 12px; box-shadow: 0 1px 3px rgba(15,27,45,.1), 0 4px 14px rgba(15,27,45,.06); overflow: hidden; }
+  #dock { background: #fff; margin: 0 12px 12px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; box-shadow: 0 4px 14px rgba(15,27,45,.06); }
+  #dockC button { font-weight: 600; }
+  a.link { border-radius: 8px; font-weight: 600; box-shadow: 0 1px 3px rgba(15,27,45,.2); transition: filter .15s, transform .15s; }
+  a.link:hover { filter: brightness(1.07); transform: translateY(-1px); }
+  .num input { transition: border-color .15s; }
+  #box3d button { border-radius: 8px; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
+<header id="hdr">
+  <div class="logo">Room<b>Grid</b></div>
+  <div class="sub">超軽量・寸法シミュレーター（2D/3D・家具配置・動線チェック）</div>
+  <div class="hdr-r"><span>※サイズから直接家具を探せます</span><a href="#" id="helpLink">使い方</a></div>
+</header>
+<div id="helpPanel">
+  <b>RoomGrid の使い方</b>
+  <ol>
+    <li>左の「家具を追加」から家具を置き、ドラッグで移動（R: 回転 / Delete: 削除）</li>
+    <li>家具を選ぶと下のバーで幅・奥行・高さを調整でき、「このサイズで探す」でAmazon・楽天を検索</li>
+    <li>ドア・窓・柱を追加すると、開閉や採光・出っ張りへの干渉が赤色で分かります</li>
+    <li>「3Dビューで確認」や画像保存で、仕上がりを確認・共有できます</li>
+  </ol>
+</div>
+<div id="app">
 <div id="sidebar">
   <h1>間取り・家具配置</h1>
   <h2>部屋の寸法</h2>
@@ -127,6 +180,7 @@
     </div>
   </div>
 </div>
+</div>
 <div id="toast"></div>
 <div id="modal3d">
   <div id="box3d">
@@ -137,6 +191,12 @@
   </div>
 </div>
 <script>
+// ---- アフィリエイト設定（IDを入れるだけで、全ての検索リンクに自動反映） ----
+const AFFILIATE_CONFIG = {
+  amazonTag: "",   // 後でAmazonアソシエイトのトラッキングID（例: "roomgrid-22"）を入れる
+  rakutenAfId: "", // 後で楽天アフィリエイト/もしものIDを入れる
+};
+
 // ---- カテゴリ（汎用ブロック）。q = 検索キーワード、variants = [名称, 幅, 奥行き] ----
 const CATEGORIES = [
   { key: "desk",   label: "デスク・机",           q: "デスク",             h: 720,  color: "#e0c89a", variants: [["標準", 1200, 600]] },
@@ -239,10 +299,14 @@ function searchUrls(it) {
   const cm = mm => Math.round(mm / 10);
   const parts = [CAT[it.cat].q, `幅${cm(it.w)}cm`, `奥行${cm(it.d)}cm`].map(encodeURIComponent);
   const kw = parts.join("+");
-  return {
-    amazon: `https://www.amazon.co.jp/s?k=${kw}`,
-    rakuten: `https://search.rakuten.co.jp/search/mall/${kw}/`,
-  };
+  let amazon = `https://www.amazon.co.jp/s?k=${kw}`;
+  if (AFFILIATE_CONFIG.amazonTag) amazon += `&tag=${encodeURIComponent(AFFILIATE_CONFIG.amazonTag)}`;
+  let rakuten = `https://search.rakuten.co.jp/search/mall/${kw}/`;
+  if (AFFILIATE_CONFIG.rakutenAfId) {   // 楽天アフィリエイトのリンク形式（遷移先URLを pc / m に指定）
+    const t = encodeURIComponent(rakuten);
+    rakuten = `https://hb.afl.rakuten.co.jp/hgc/${encodeURIComponent(AFFILIATE_CONFIG.rakutenAfId)}/?pc=${t}&m=${t}`;
+  }
+  return { amazon, rakuten };
 }
 
 // ---- 詳細パネル ----
@@ -1337,6 +1401,21 @@ $("autoRun").onclick = runAutoLayout;
 renderCats();
 renderStds();
 renderDetail();
+
+// 使い方ガイドの開閉
+$("helpLink").onclick = e => { e.preventDefault(); e.stopPropagation(); $("helpPanel").classList.toggle("open"); };
+document.addEventListener("click", e => { if (!$("helpPanel").contains(e.target)) $("helpPanel").classList.remove("open"); });
+
+// 初期状態: 6畳間（3600×2700、天井高2400）にシングルベッドとワークデスクを壁際へ配置
+(function initSample() {
+  room.w = 3600; room.d = 2700; room.h = 2400;
+  $("w").value = room.w; $("d").value = room.d; $("rh").value = room.h;
+  $("wVal").textContent = room.w; $("dVal").textContent = room.d; $("hVal").textContent = room.h;
+  const bed = CAT.bed, desk = CAT.desk;
+  const [, bw, bd] = bed.variants[0], [, dw, dd] = desk.variants[0];
+  items.push({ id: nextId++, cat: "bed", name: "ベッド（シングル）", w: bw, d: bd, h: bed.h, color: bed.color, x: 0, y: 0 });
+  items.push({ id: nextId++, cat: "desk", name: "ワークデスク", w: dw, d: dd, h: desk.h, color: desk.color, x: room.w - dw, y: 0 });
+})();
 resize();
 </script>
 </body>
