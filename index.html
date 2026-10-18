@@ -170,6 +170,10 @@
   選択中は周囲600mmの通路目安を表示（緑=確保 / 橙=600mm未満の隙間）。<br>
   ※標準規格は「○○風」の定番サイズの目安値で、実際の商品寸法とは異なる場合があります。</div>
 
+  <div id="ad-banner-container" style="text-align:center;margin:12px 0 8px;">
+    <a href="https://af.moshimo.com/af/c/click?a_id=5854122&p_id=54&pc_id=54&pl_id=616" rel="nofollow" referrerpolicy="no-referrer-when-downgrade" attributionsrc target="_blank"><img src="https://image.moshimo.com/af-img/0032/000000000616.gif" width="88" height="31" style="border:none;" alt="楽天市場"></a><img src="https://i.moshimo.com/af/i/impression?a_id=5854122&p_id=54&pc_id=54&pl_id=616" width="1" height="1" style="border:none;" loading="lazy" alt="">
+  </div>
+
   <div id="disclaimer">
     当サイトはアフィリエイト広告（Amazonアソシエイト、楽天アフィリエイト等）を掲載しています。
     <details>
@@ -205,8 +209,13 @@
 <script>
 // ---- アフィリエイト設定（IDを入れるだけで、全ての検索リンクに自動反映） ----
 const AFFILIATE_CONFIG = {
-  amazonTag: "",   // 後でAmazonアソシエイトのトラッキングID（例: "roomgrid-22"）を入れる
-  rakutenAfId: "", // 後で楽天アフィリエイト/もしものIDを入れる
+  amazonTag: "", // Amazonは後日設定
+  moshimoRakuten: {
+    a_id: "5854122",
+    p_id: "54",
+    pc_id: "54",
+    pl_id: "616"
+  }
 };
 
 // ---- カテゴリ（汎用ブロック）。q = 検索キーワード、variants = [名称, 幅, 奥行き] ----
@@ -309,12 +318,14 @@ function constrain(it) {
 // ---- 検索リンク生成 ----
 function searchUrls(it) {
   const cm = mm => Math.round(mm / 10);
-  const parts = [CAT[it.cat].q, `幅${cm(it.w)}cm`, `奥行${cm(it.d)}cm`].map(encodeURIComponent);
-  const kw = parts.join("+");
-  let amazon = `https://www.amazon.co.jp/s?k=${kw}`;
+  const searchKeyword = `${CAT[it.cat].q} 幅${cm(it.w)}cm 奥行${cm(it.d)}cm`;
+  let amazon = `https://www.amazon.co.jp/s?k=${encodeURIComponent(searchKeyword)}`;
   if (AFFILIATE_CONFIG.amazonTag) amazon += `&tag=${encodeURIComponent(AFFILIATE_CONFIG.amazonTag)}`;
-  let rakuten = `https://search.rakuten.co.jp/search/mall/${kw}/`;
-  if (AFFILIATE_CONFIG.rakutenAfId) {   // 楽天アフィリエイトのリンク形式（遷移先URLを pc / m に指定）
+  let rakuten = `https://search.rakuten.co.jp/search/mall/${encodeURIComponent(searchKeyword)}/`;
+  if (AFFILIATE_CONFIG.moshimoRakuten) {
+    const m = AFFILIATE_CONFIG.moshimoRakuten;
+    rakuten = `https://af.moshimo.com/af/c/click?a_id=${encodeURIComponent(m.a_id)}&p_id=${encodeURIComponent(m.p_id)}&pc_id=${encodeURIComponent(m.pc_id)}&pl_id=${encodeURIComponent(m.pl_id)}&url=${encodeURIComponent(rakuten)}`;
+  } else if (AFFILIATE_CONFIG.rakutenAfId) { // 楽天アフィリエイト直接の場合のフォールバック
     const t = encodeURIComponent(rakuten);
     rakuten = `https://hb.afl.rakuten.co.jp/hgc/${encodeURIComponent(AFFILIATE_CONFIG.rakutenAfId)}/?pc=${t}&m=${t}`;
   }
@@ -348,7 +359,7 @@ function renderDetail() {
     </div>`;
   $("detailR").innerHTML = `
     <a id="lkA" class="link amazon" target="_blank" rel="noopener noreferrer"></a>
-    <a id="lkR" class="link rakuten" target="_blank" rel="noopener noreferrer"></a>`;
+    <a id="lkR" class="link rakuten" target="_blank" rel="nofollow noopener"></a>`;
   $("inW").oninput = applySize;
   $("inD").oninput = applySize;
   $("inH").oninput = applySize;
