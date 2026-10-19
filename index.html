@@ -2,13 +2,21 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RoomGrid｜簡易間取り・家具配置シミュレーター</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RoomGrid - ブラウザで動く軽量 間取り＆家具配置シミュレーター</title>
+<meta name="description" content="部屋の寸法に合わせて家具の配置や動線・ドア干渉を2D/3Dで即座にシミュレーションできる無料Webツール。サイズから実在の家具を逆引き検索可能。">
+<meta property="og:title" content="RoomGrid - ブラウザで動く軽量 間取り＆家具配置シミュレーター">
+<meta property="og:description" content="部屋の寸法に合わせて家具の配置や動線・ドア干渉を2D/3Dで即座にシミュレーションできる無料Webツール。サイズから実在の家具を逆引き検索可能。">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="RoomGrid">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RoomGrid - ブラウザで動く軽量 間取り＆家具配置シミュレーター">
+<meta name="twitter:description" content="部屋の寸法に合わせて家具の配置や動線・ドア干渉を2D/3Dで即座にシミュレーションできる無料Webツール。サイズから実在の家具を逆引き検索可能。">
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; height: 100vh; display: flex; flex-direction: column; font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color: #1e293b; background: #eef1f5; }
-  #app { flex: 1; display: flex; min-height: 0; }
-  #sidebar { width: 310px; padding: 16px; background: #f3f4f6; border-right: 1px solid #d1d5db; overflow-y: auto; flex-shrink: 0; }
+  body { margin: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color: #1e293b; background: #eef1f5; overflow: hidden; }
+  #app { flex: 1; display: flex; min-height: 0; position: relative; }
+  #sidebar { width: 310px; padding: 16px; background: #f3f4f6; border-right: 1px solid #d1d5db; overflow-y: auto; flex-shrink: 0; -webkit-overflow-scrolling: touch; }
   #sidebar h1 { font-size: 16px; margin: 0 0 12px; }
   #sidebar h2 { font-size: 13px; margin: 18px 0 8px; color: #555; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
   label { display: block; font-size: 13px; margin-bottom: 10px; }
@@ -34,9 +42,9 @@
   a.link { display: block; text-align: center; padding: 8px; color: #fff; border-radius: 4px; text-decoration: none; font-size: 12px; margin-bottom: 6px; }
   a.amazon { background: #f59e0b; color: #111; }
   a.rakuten { background: #bf0000; }
-  #main { flex: 1; display: flex; flex-direction: column; background: #fff; min-width: 0; }
+  #main { flex: 1; display: flex; flex-direction: column; background: #fff; min-width: 0; min-height: 0; }
   #stage { flex: 1; position: relative; min-height: 0; }
-  #dock { flex-shrink: 0; min-height: 96px; padding: 8px 16px; border-top: 1px solid #d1d5db; background: #f9fafb; display: flex; align-items: center; }
+  #dock { flex-shrink: 0; min-height: 96px; padding: 8px 16px; padding-bottom: max(8px, env(safe-area-inset-bottom, 12px)); border-top: 1px solid #d1d5db; background: #f9fafb; display: flex; align-items: center; }
   #dockEmpty { width: 100%; text-align: center; color: #777; font-size: 13px; }
   #dockBody { display: none; width: 100%; align-items: center; gap: 24px; flex-wrap: wrap; }
   #dockBody.on { display: flex; }
@@ -48,14 +56,14 @@
   #dockC button { margin: 0; padding: 10px 16px; font-size: 13px; }
   #detailR { display: flex; flex-direction: column; gap: 6px; width: 260px; flex-shrink: 0; }
   #detailR a.link { margin: 0; }
-  #toast { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%) translateY(10px); background: rgba(17,24,39,.92); color: #fff; padding: 10px 18px; border-radius: 6px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200; }
+  #toast { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%) translateY(10px); background: rgba(17,24,39,.92); color: #fff; padding: 10px 18px; border-radius: 6px; font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; z-index: 200; max-width: 92vw; text-align: center; }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   #info { font-size: 11px; color: #555; margin-top: 8px; line-height: 1.5; }
   #modal3d { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; }
   #modal3d.open { display: flex; }
-  #box3d { position: relative; width: 92vw; height: 90vh; background: #dfe7ee; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
-  #view3d { width: 100%; height: 100%; display: block; }
+  #box3d { position: relative; width: 92vw; height: 90vh; height: 90dvh; background: #dfe7ee; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  #view3d { width: 100%; height: 100%; display: block; touch-action: none; }
   #close3d { position: absolute; top: 12px; right: 12px; z-index: 2; padding: 8px 14px; font-size: 14px; background: #fff; }
   #save3d { position: absolute; top: 12px; right: 190px; z-index: 2; padding: 8px 14px; font-size: 14px; background: #fff; }
   #help3d { position: absolute; left: 12px; bottom: 10px; font-size: 12px; color: #334; background: rgba(255,255,255,.7); padding: 4px 8px; border-radius: 4px; }
@@ -64,10 +72,15 @@
   #hdr .logo { font-size: 20px; font-weight: 800; letter-spacing: .02em; }
   #hdr .logo b { color: #60a5fa; font-weight: 800; }
   #hdr .sub { font-size: 12px; color: #a9bad0; padding-left: 16px; border-left: 1px solid rgba(255,255,255,.18); }
-  #hdr .hdr-r { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 12px; color: #a9bad0; }
-  #hdr .hdr-r a { color: #fff; text-decoration: none; padding: 5px 12px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; font-size: 12px; }
+  #hdr .hdr-r { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #a9bad0; }
+  #hdr .hdr-r a { color: #fff; text-decoration: none; padding: 5px 12px; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; font-size: 12px; white-space: nowrap; }
   #hdr .hdr-r a:hover { background: rgba(255,255,255,.12); }
-  #helpPanel { display: none; position: absolute; top: 58px; right: 16px; width: 340px; background: #fff; color: #1e293b; border-radius: 12px; box-shadow: 0 12px 32px rgba(15,27,45,.28); padding: 16px 18px; z-index: 30; font-size: 13px; line-height: 1.7; }
+  #menuToggle { display: none; align-items: center; gap: 5px; margin: 0; padding: 6px 12px; min-height: 36px; background: #2563eb; border: 1px solid #60a5fa; color: #fff; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  #sidebarHdr { display: none; align-items: center; justify-content: space-between; padding-bottom: 10px; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; }
+  #sidebarHdr b { font-size: 14px; color: #0f1b2d; }
+  #sidebarClose { margin: 0; padding: 6px 12px; min-height: 36px; font-weight: 600; background: #f1f5f9; border-color: #cbd5e1; }
+  #sidebarBackdrop { display: none; position: fixed; inset: 52px 0 0 0; background: rgba(15,27,45,.45); z-index: 45; }
+  #helpPanel { display: none; position: absolute; top: 58px; right: 16px; width: 340px; background: #fff; color: #1e293b; border-radius: 12px; box-shadow: 0 12px 32px rgba(15,27,45,.28); padding: 16px 18px; z-index: 60; font-size: 13px; line-height: 1.7; }
   #helpPanel.open { display: block; }
   #helpPanel b { display: block; margin-bottom: 6px; font-size: 14px; }
   #helpPanel ol { margin: 0; padding-left: 20px; }
@@ -100,27 +113,207 @@
   a.link:hover { filter: brightness(1.07); transform: translateY(-1px); }
   .num input { transition: border-color .15s; }
   #box3d button { border-radius: 8px; }
+
+  /* ヘッダー内ショートカットボタン & お任せモーダル */
+  .hdr-btn {
+    font-family: inherit; margin: 0; padding: 6px 14px; min-height: 36px;
+    border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    white-space: nowrap; transition: transform .15s, background .15s, box-shadow .15s, border-color .15s;
+    text-decoration: none; border: none; outline: none;
+  }
+  .hdr-btn:active { transform: scale(0.96); }
+  .hdr-btn.view3d {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: 1px solid #60a5fa;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.45);
+  }
+  .hdr-btn.view3d:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    box-shadow: 0 4px 14px rgba(37,99,235,0.65);
+    transform: translateY(-1px);
+  }
+  .hdr-btn.auto {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #f8fafc;
+  }
+  .hdr-btn.auto:hover {
+    background: rgba(255, 255, 255, 0.24);
+    border-color: rgba(255, 255, 255, 0.55);
+    transform: translateY(-1px);
+  }
+
+  #autoModal {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(15,27,45,0.6);
+    display: none; align-items: center; justify-content: center;
+    padding: 16px; backdrop-filter: blur(3px);
+  }
+  #autoModal.open { display: flex; }
+  .auto-modal-content {
+    background: #fff; border-radius: 16px; width: 100%; max-width: 380px;
+    box-shadow: 0 20px 45px rgba(15,27,45,0.35); padding: 20px;
+    animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.94) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .auto-modal-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .auto-modal-hdr b { font-size: 16px; color: #0f1b2d; }
+  .auto-modal-hdr button {
+    background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 999px;
+    width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; margin: 0; color: #475569;
+  }
+  .auto-modal-desc {
+    font-size: 12px; color: #64748b; margin-bottom: 14px; line-height: 1.5;
+  }
+  .auto-options { display: flex; flex-direction: column; gap: 8px; }
+  .auto-opt-btn {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 10px 14px; cursor: pointer; margin: 0; transition: all 0.15s;
+    font-family: inherit;
+  }
+  .auto-opt-btn:hover {
+    background: #eff6ff; border-color: #3b82f6; transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37,99,235,0.12);
+  }
+  .auto-opt-btn:active { transform: scale(0.98); }
+  .auto-opt-btn .icon { font-size: 22px; flex-shrink: 0; }
+  .auto-opt-btn .opt-text b { display: block; font-size: 13.5px; color: #1e293b; }
+  .auto-opt-btn .opt-text small { display: block; font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  /* ---- モバイル向けレスポンシブ対応 (@media max-width: 768px) ---- */
+  @media (max-width: 768px) {
+    #hdr { padding: 0 8px; gap: 6px; height: 48px; justify-content: space-between; }
+    #hdr .logo { font-size: 16px; margin: 0; }
+    #hdr .sub, #hdr .hdr-r span, #hdr .hdr-r a#helpLink { display: none; }
+    #menuToggle { display: inline-flex; padding: 6px 10px; min-height: 36px; font-size: 12px; }
+    #hdr .hdr-r { margin-left: 0; gap: 6px; }
+    .hdr-btn { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+    #helpPanel { top: 52px; left: 10px; right: 10px; width: auto; }
+    #app { flex-direction: column; }
+    #sidebar {
+      position: fixed; top: 48px; left: 0; bottom: 0;
+      width: min(88vw, 340px); max-width: 100%; z-index: 50;
+      transform: translateX(-105%); transition: transform .25s cubic-bezier(.4,0,.2,1);
+      padding: 14px 14px calc(28px + env(safe-area-inset-bottom, 12px));
+      border-right: 1px solid #cbd5e1;
+    }
+    #sidebar.open { transform: translateX(0); box-shadow: 8px 0 28px rgba(15,27,45,.35); }
+    #sidebarHdr { display: flex; }
+    #sidebarBackdrop { inset: 48px 0 0 0; }
+    #sidebarBackdrop.open { display: block; }
+    #sidebar button { min-height: 40px; font-size: 13px; }
+    #sidebar select { min-height: 40px; font-size: 14px; }
+    #main { width: 100%; flex: 1; min-height: 0; }
+    #stage { margin: 6px 6px 0; border-radius: 10px 10px 0 0; min-height: 180px; }
+    #dock {
+      margin: 0 6px 6px;
+      padding: 10px 12px max(12px, env(safe-area-inset-bottom, 12px));
+      min-height: 64px; max-height: 46dvh; overflow-y: auto;
+      border-radius: 0 0 10px 10px;
+    }
+    #dockEmpty { font-size: 12px; line-height: 1.5; padding: 4px 0; }
+    #dockBody { gap: 8px; }
+    #detailL { flex: 1 1 100%; min-width: 0; }
+    #detailL .dtitle { gap: 6px; margin-bottom: 6px; }
+    #detailL .num { max-width: 100%; gap: 6px; }
+    #detailL .num input { min-height: 44px; font-size: 16px; padding: 6px 8px; }
+    #dockC { width: 100%; display: flex; gap: 8px; }
+    #dockC button { flex: 1; min-height: 44px; padding: 10px 12px; font-size: 14px; }
+    #detailR { width: 100%; display: flex; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+    #detailR a.link, #detailR button {
+      flex: 1 1 calc(50% - 6px); min-width: 135px; min-height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 8px 10px; font-size: 12px; line-height: 1.25; margin: 0;
+    }
+    #box3d { width: 96vw; height: 88dvh; }
+    #close3d, #save3d { min-height: 44px; font-size: 13px; padding: 8px 12px; }
+    #save3d { right: auto; left: 12px; }
+    #help3d { font-size: 11px; right: 12px; text-align: center; }
+  }
+  @media (max-width: 360px) {
+    #hdr { padding: 0 4px; gap: 4px; }
+    #menuToggle { padding: 5px 8px; font-size: 11px; }
+    #hdr .logo { font-size: 14px; }
+    .hdr-btn { padding: 5px 8px; font-size: 11px; }
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 <header id="hdr">
+  <button id="menuToggle" type="button" aria-label="家具追加・部屋設定メニューを開閉">☰ 家具・設定</button>
   <div class="logo">Room<b>Grid</b></div>
   <div class="sub">超軽量・寸法シミュレーター（2D/3D・家具配置・動線チェック）</div>
-  <div class="hdr-r"><span>※サイズから直接家具を探せます</span><a href="#" id="helpLink">使い方</a></div>
+  <div class="hdr-r">
+    <span>※サイズから直接家具を探せます</span>
+    <button id="btnAutoQuick" class="hdr-btn auto" type="button" title="おすすめ自動配置">✨ お任せ</button>
+    <button id="btn3dQuick" class="hdr-btn view3d" type="button" title="3Dビューで確認">🧊 3D</button>
+    <a href="#" id="helpLink">使い方</a>
+  </div>
 </header>
 <div id="helpPanel">
   <b>RoomGrid の使い方</b>
   <ol>
-    <li>左の「家具を追加」から家具を置き、ドラッグで移動（R: 回転 / Delete: 削除）</li>
+    <li>「家具を追加」（スマホは左上の「☰ 家具・設定」）から家具を置き、ドラッグで移動（R: 回転 / Delete: 削除）</li>
     <li>家具を選ぶと下のバーで幅・奥行・高さを調整でき、「このサイズで探す」でAmazon・楽天を検索</li>
     <li>ドア・窓・柱を追加すると、開閉や採光・出っ張りへの干渉が赤色で分かります</li>
     <li>「3Dビューで確認」や画像保存で、仕上がりを確認・共有できます</li>
   </ol>
 </div>
+<div id="autoModal">
+  <div class="auto-modal-content">
+    <div class="auto-modal-hdr">
+      <b>✨ お任せ自動配置</b>
+      <button id="closeAutoModal" type="button" aria-label="閉じる">✕</button>
+    </div>
+    <div class="auto-modal-desc">扉（ドア）・窓と家具を、動線や採光を考慮して一括で自動配置します：</div>
+    <div class="auto-options">
+      <button class="auto-opt-btn" data-type="work" type="button">
+        <span class="icon">💼</span>
+        <div class="opt-text">
+          <b>① ワンルーム・テレワーク型</b>
+          <small>シングルベッド、ワークデスク、TV台、収納棚</small>
+        </div>
+      </button>
+      <button class="auto-opt-btn" data-type="living" type="button">
+        <span class="icon">🛋️</span>
+        <div class="opt-text">
+          <b>② 広々リビング型</b>
+          <small>TV台、2人掛けソファ、ダイニング、ローテーブル</small>
+        </div>
+      </button>
+      <button class="auto-opt-btn" data-type="sleep" type="button">
+        <span class="icon">🛏️</span>
+        <div class="opt-text">
+          <b>③ シンプル睡眠特化型</b>
+          <small>セミダブルベッド、サイドテーブル×2、収納棚</small>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
 <div id="app">
+<div id="sidebarBackdrop"></div>
 <div id="sidebar">
+  <div id="sidebarHdr">
+    <b>部屋設定・家具を追加</b>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <a href="#" id="helpLinkMobile" style="font-size:12px;color:#2563eb;text-decoration:none;font-weight:600;">使い方</a>
+      <button id="sidebarClose" type="button">✕ 閉じる</button>
+    </div>
+  </div>
   <h1>間取り・家具配置</h1>
   <h2>部屋の寸法</h2>
   <label>幅: <b id="wVal">4000</b> mm
@@ -185,7 +378,7 @@
 <div id="main">
   <div id="stage"><canvas id="c"></canvas></div>
   <div id="dock">
-    <div id="dockEmpty">家具をクリックして選択すると、ここでサイズ調整や検索ができます</div>
+    <div id="dockEmpty">家具をタップ／クリックして選択すると、ここでサイズ調整や検索ができます</div>
     <div id="dockBody">
       <div id="detailL"></div>
       <div id="dockC">
@@ -203,7 +396,7 @@
     <button id="close3d">閉じる（2Dに戻る）</button>
     <button id="save3d">3D画像を保存</button>
     <canvas id="view3d"></canvas>
-    <div id="help3d">左ドラッグ: 回転 / ホイール: ズーム / 右ドラッグ: 平行移動</div>
+    <div id="help3d">ドラッグ/1本指: 回転 ／ ホイール/ピンチ: ズーム ／ 右ドラッグ/2本指: 平行移動</div>
   </div>
 </div>
 <script>
@@ -299,6 +492,18 @@ function renderStds() {
   });
 }
 
+function closeSidebar() {
+  $("sidebar").classList.remove("open");
+  $("sidebarBackdrop").classList.remove("open");
+}
+function toggleSidebar() {
+  const open = $("sidebar").classList.toggle("open");
+  $("sidebarBackdrop").classList.toggle("open", open);
+}
+$("menuToggle").onclick = e => { e.stopPropagation(); toggleSidebar(); };
+$("sidebarClose").onclick = closeSidebar;
+$("sidebarBackdrop").onclick = closeSidebar;
+
 function addItem(p) {
   const it = { id: nextId++, cat: p.cat, name: p.name, w: p.w, d: p.d, h: p.h, color: p.color, x: 0, y: 0 };
   if (it.w > room.w || it.d > room.d) [it.w, it.d] = [it.d, it.w];
@@ -307,6 +512,7 @@ function addItem(p) {
   it.y = snap((room.d - it.d) / 2);
   constrain(it);
   items.push(it);
+  closeSidebar();
   select(it);
 }
 
@@ -387,10 +593,10 @@ function applySize() {
 }
 $("dock").addEventListener("focusout", () => { syncDetail(true); if (selectedDoor) syncDoor(true); if (selectedBlock) syncBlock(true); if (selectedWin) syncWin(true); });
 
-function select(it) { selected = it; selectedDoor = null; selectedBlock = null; selectedWin = null; renderDetail(); draw(); }
-function selectDoor(dr) { selected = null; selectedDoor = dr; selectedBlock = null; selectedWin = null; renderDetail(); draw(); }
-function selectBlock(b) { selected = null; selectedDoor = null; selectedBlock = b; selectedWin = null; renderDetail(); draw(); }
-function selectWin(w) { selected = null; selectedDoor = null; selectedBlock = null; selectedWin = w; renderDetail(); draw(); }
+function select(it) { selected = it; selectedDoor = null; selectedBlock = null; selectedWin = null; renderDetail(); resize(); }
+function selectDoor(dr) { selected = null; selectedDoor = dr; selectedBlock = null; selectedWin = null; renderDetail(); resize(); }
+function selectBlock(b) { selected = null; selectedDoor = null; selectedBlock = b; selectedWin = null; renderDetail(); resize(); }
+function selectWin(w) { selected = null; selectedDoor = null; selectedBlock = null; selectedWin = w; renderDetail(); resize(); }
 
 function rotate() {
   if (selectedBlock) {
@@ -442,14 +648,19 @@ $("w").oninput = $("d").oninput = onRoomChange;
 
 function resize() {
   const r = cv.parentElement.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-  cv.width = r.width * dpr; cv.height = r.height * dpr;
+  cv.width = Math.max(1, Math.round(r.width * dpr));
+  cv.height = Math.max(1, Math.round(r.height * dpr));
   draw();
 }
 window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => setTimeout(resize, 100));
+if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe($("stage"));
 function layout() {
-  const W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1, pad = 50 * dpr;
-  scale = Math.min((W - pad * 2) / room.w, (H - pad * 2) / room.d);
+  const W = cv.width, H = cv.height, dpr = window.devicePixelRatio || 1;
+  const minDim = Math.min(W, H) / dpr;
+  const pad = Math.max(24, Math.min(50, minDim * 0.11)) * dpr;
+  scale = Math.max(0.01, Math.min((W - pad * 2) / room.w, (H - pad * 2) / room.d));
   ox = (W - room.w * scale) / 2; oy = (H - room.d * scale) / 2;
 }
 
@@ -686,45 +897,52 @@ function draw() {
   updateWarn();
 }
 
-// ---- ドラッグ操作 ----
+// ---- ドラッグ操作（マウス・タッチ完全対応） ----
 let drag = null;
 function toMM(e) {
+  const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
   const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-  return { x: ((e.clientX - r.left) * dpr - ox) / scale, y: ((e.clientY - r.top) * dpr - oy) / scale };
+  return { x: ((t.clientX - r.left) * dpr - ox) / scale, y: ((t.clientY - r.top) * dpr - oy) / scale };
 }
-cv.addEventListener("pointerdown", e => {
+function onDown(e) {
+  if (e.type === "mousedown" && e.button !== 0) return;
+  if (e.cancelable) e.preventDefault();
+  if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "SELECT")) {
+    document.activeElement.blur();
+  }
   const p = toMM(e);
   const hit = [...items].reverse().find(it => p.x >= it.x && p.x <= it.x + it.w && p.y >= it.y && p.y <= it.y + it.d);
   if (hit) {
     items = items.filter(i => i !== hit); items.push(hit);
-    drag = { it: hit, dx: p.x - hit.x, dy: p.y - hit.y };
-    cv.setPointerCapture(e.pointerId);
+    if (hit !== selected || selectedDoor || selectedBlock || selectedWin) select(hit); else draw();
+    const pNow = toMM(e);
+    drag = { it: hit, dx: pNow.x - hit.x, dy: pNow.y - hit.y };
+    return;
   }
-  if (!hit) {
-    const b = blockAt(p);
-    if (b) {
-      blockDrag = { b, dx: p.x - b.x, dy: p.y - b.y }; cv.setPointerCapture(e.pointerId);
-      if (b !== selectedBlock) selectBlock(b); else draw();
-      return;
-    }
-    const dr = doorAt(p);
-    if (dr) {
-      doorDrag = dr; cv.setPointerCapture(e.pointerId);
-      if (dr !== selectedDoor) selectDoor(dr); else draw();
-      return;
-    }
+  const b = blockAt(p);
+  if (b) {
+    if (b !== selectedBlock) selectBlock(b); else draw();
+    const pNow = toMM(e);
+    blockDrag = { b, dx: pNow.x - b.x, dy: pNow.y - b.y };
+    return;
   }
-  if (!hit) {
-    const wn = winAt(p);
-    if (wn) {
-      winDrag = wn; cv.setPointerCapture(e.pointerId);
-      if (wn !== selectedWin) selectWin(wn); else draw();
-      return;
-    }
+  const dr = doorAt(p);
+  if (dr) {
+    if (dr !== selectedDoor) selectDoor(dr); else draw();
+    doorDrag = dr;
+    return;
   }
-  if (hit !== selected || selectedDoor || selectedBlock || selectedWin) select(hit || null); else draw();
-});
-cv.addEventListener("pointermove", e => {
+  const wn = winAt(p);
+  if (wn) {
+    if (wn !== selectedWin) selectWin(wn); else draw();
+    winDrag = wn;
+    return;
+  }
+  if (selected || selectedDoor || selectedBlock || selectedWin) select(null); else draw();
+}
+function onMove(e) {
+  if (!drag && !blockDrag && !winDrag && !doorDrag) return;
+  if (e.cancelable) e.preventDefault();
   if (blockDrag) {
     const p = toMM(e);
     blockDrag.b.x = p.x - blockDrag.dx; blockDrag.b.y = p.y - blockDrag.dy;
@@ -737,13 +955,20 @@ cv.addEventListener("pointermove", e => {
   drag.it.x = p.x - drag.dx; drag.it.y = p.y - drag.dy;
   constrain(drag.it);
   draw();
-});
-cv.addEventListener("pointerup", () => {
+}
+function onUp() {
   drag = null;
   blockDrag = null;
   if (winDrag) { winDrag = null; if (selectedWin) syncWin(true); }
   if (doorDrag) { doorDrag = null; if (selectedDoor) syncDoor(true); }
-});
+}
+cv.addEventListener("mousedown", onDown);
+window.addEventListener("mousemove", onMove);
+window.addEventListener("mouseup", onUp);
+cv.addEventListener("touchstart", onDown, { passive: false });
+cv.addEventListener("touchmove", onMove, { passive: false });
+cv.addEventListener("touchend", onUp);
+cv.addEventListener("touchcancel", onUp);
 
 $("snapSel").onchange = () => {
   SNAP = +$("snapSel").value;
@@ -966,7 +1191,7 @@ function buildScene(resetCamera) {
   });
   // 家具 (2Dの y は 3D の z)。2Dの w,d は回転後の寸法なので角度は不要
   items.forEach(it => {
-    const g = buildFurniture(it, overlaps(it));
+    const g = buildFurniture(it, overlaps(it) || doorHit(it) || blockHit(it) || winHit(it));
     g.position.set(it.x + it.w / 2, 0, it.y + it.d / 2);
     g.rotation.y = it.flip ? Math.PI : 0; // オート配置で壁に背を向ける向き（180°）
     group.add(g);
@@ -1006,6 +1231,7 @@ function open3d() {
     alert("Three.js を読み込めませんでした。ネットワーク接続を確認してください。");
     return;
   }
+  closeSidebar();
   $("modal3d").classList.add("open");
   if (!three) initThree();
   resize3d();
@@ -1033,7 +1259,7 @@ $("save3d").onclick = () => {
   }, "image/png");
 };
 window.addEventListener("resize", resize3d);
-window.addEventListener("keydown", e => { if (e.key === "Escape") close3d(); });
+window.addEventListener("keydown", e => { if (e.key === "Escape") { close3d(); $("autoModal").classList.remove("open"); } });
 
 // ---- 窓（採光・通風） ----
 // wn = { kind: "floor"|"waist", label, wall, pos, w, sill(床から), h(窓の高さ) }
@@ -1068,7 +1294,7 @@ function winAt(p) {
     const G = winGeom(wn);
     const rx = p.x - G.base.x, ry = p.y - G.base.y;
     const t = rx * G.along.x + ry * G.along.y, n = rx * G.inward.x + ry * G.inward.y;
-    if (t >= 0 && t <= wn.w && n >= -200 && n <= 300) return wn;
+    if (t >= 0 && t <= wn.w && n >= -280 && n <= 360) return wn;
   }
   return null;
 }
@@ -1092,6 +1318,7 @@ function addWin(s) {
     if (!clash) break;
   }
   wins.push(wn);
+  closeSidebar();
   selectWin(wn);
 }
 WINDOWS.forEach(s => {
@@ -1169,6 +1396,7 @@ function addBlock(s) {
     if (!blocks.some(o => rectsOverlap(b, o))) break;
   }
   blocks.push(b);
+  closeSidebar();
   selectBlock(b);
 }
 STRUCTS.forEach(s => {
@@ -1258,13 +1486,13 @@ function doorSwingHits(dr, r) {
 }
 function doorHit(it) { return doors.some(dr => doorSwingHits(dr, it)); }
 
-// クリック判定: 開口部の帯（壁の外側200mm〜室内側300mm）
+// クリック・タッチ判定: 開口部の帯（壁の外側280mm〜室内側360mm）
 function doorAt(p) {
   for (const dr of [...doors].reverse()) {
     const G = doorGeom(dr);
     const rx = p.x - G.base.x, ry = p.y - G.base.y;
     const t = rx * G.along.x + ry * G.along.y, n = rx * G.inward.x + ry * G.inward.y;
-    if (t >= 0 && t <= dr.w && n >= -200 && n <= 300) return dr;
+    if (t >= 0 && t <= dr.w && n >= -280 && n <= 360) return dr;
   }
   return null;
 }
@@ -1325,6 +1553,7 @@ $("addDoor").onclick = () => {
   dr.pos = snap((room.w - dr.w) / 2);
   clampDoor(dr);
   doors.push(dr);
+  closeSidebar();
   selectDoor(dr);
 };
 $("rh").oninput = () => { room.h = +$("rh").value; $("hVal").textContent = room.h; };
@@ -1334,24 +1563,74 @@ $("rh").oninput = () => { room.h = +$("rh").value; $("hVal").textContent = room.
 // prefer = 望ましい向き（長辺方向）。候補を全探索し、目標に近く・100mm以上離れ・通路が広い位置を採用。
 const AUTO_GAP = 100, AUTO_AISLE = 600;
 const AUTO_LAYOUTS = {
-  work: { name: "ワンルーム・テレワーク型", parts: [
-    { cat: "bed",   v: 0, prefer: "portrait",  wall: true, at: (W, D) => [0, 0] },
-    { cat: "desk",  v: 0, prefer: "landscape", wall: true, at: (W, D) => [W, 0] },
-    { cat: "tv",    v: 0, prefer: "landscape", wall: true, at: (W, D) => [W * 0.6, D] },
-    { cat: "shelf", v: 0, prefer: "landscape", wall: true, at: (W, D) => [0, D] },
-  ] },
-  living: { name: "広々リビング型", parts: [
-    { cat: "tv",     v: 0, prefer: "landscape", wall: true,  at: (W, D) => [W / 2, 0] },
-    { cat: "sofa",   v: 0, prefer: "landscape", wall: true,  at: (W, D) => [W / 2, D] },
-    { cat: "dining", v: 0, prefer: "landscape", wall: true,  at: (W, D) => [W, 0] },
-    { cat: "table",  v: 0, prefer: "landscape", wall: false, at: (W, D) => [W / 2, D / 2] },
-  ] },
-  sleep: { name: "シンプル睡眠特化型", parts: [
-    { cat: "bed",   v: 1, prefer: "portrait", wall: true, at: (W, D) => [W / 2, 0] },
-    { cat: "side",  v: 0, prefer: null, wall: true, at: (W, D, p) => { const b = p.find(i => i.cat === "bed"); return b ? [b.x - AUTO_GAP - 200, 200] : [200, 200]; } },
-    { cat: "side",  v: 0, prefer: null, wall: true, at: (W, D, p) => { const b = p.find(i => i.cat === "bed"); return b ? [b.x + b.w + AUTO_GAP + 200, 200] : [W - 200, 200]; } },
-    { cat: "shelf", v: 0, prefer: "landscape", wall: true, at: (W, D) => [W * 0.85, D] },
-  ] },
+  work: {
+    name: "ワンルーム・テレワーク型",
+    door: (W, D) => ({ wall: "bottom", pos: snap(Math.max(0, W - 900)), w: Math.min(800, W), inward: true, hinge: "end" }),
+    win: (W, D) => {
+      const isFloor = W >= 4000;
+      const w = Math.min(isFloor ? 1600 : 1200, W);
+      return {
+        kind: isFloor ? "floor" : "waist",
+        label: isFloor ? "掃き出し窓" : "腰高窓",
+        wall: "top",
+        pos: snap(clamp((W - w) / 2, 0, Math.max(0, W - w))),
+        w,
+        sill: isFloor ? 0 : 900,
+        h: isFloor ? 2000 : 1100,
+      };
+    },
+    parts: [
+      { cat: "bed",   v: 0, prefer: "portrait",  wall: true, at: (W, D) => [0, 0] },
+      { cat: "desk",  v: 0, prefer: "landscape", wall: true, at: (W, D) => [W, 0] },
+      { cat: "tv",    v: 0, prefer: "landscape", wall: true, at: (W, D) => [W * 0.45, D] },
+      { cat: "shelf", v: 0, prefer: "landscape", wall: true, at: (W, D) => [0, D] },
+    ]
+  },
+  living: {
+    name: "広々リビング型",
+    door: (W, D) => ({ wall: "bottom", pos: snap(Math.max(0, W - 900)), w: Math.min(800, W), inward: true, hinge: "end" }),
+    win: (W, D) => {
+      const isFloor = W >= 3600;
+      const w = Math.min(isFloor ? 1600 : 1200, W);
+      return {
+        kind: isFloor ? "floor" : "waist",
+        label: isFloor ? "掃き出し窓" : "腰高窓",
+        wall: "top",
+        pos: snap(clamp((W - w) / 2, 0, Math.max(0, W - w))),
+        w,
+        sill: isFloor ? 0 : 900,
+        h: isFloor ? 2000 : 1100,
+      };
+    },
+    parts: [
+      { cat: "tv",     v: 0, prefer: "landscape", wall: true,  at: (W, D) => [0, 0] },
+      { cat: "sofa",   v: 0, prefer: "landscape", wall: true,  at: (W, D) => [0, D] },
+      { cat: "dining", v: 0, prefer: "landscape", wall: true,  at: (W, D) => [W, 0] },
+      { cat: "table",  v: 0, prefer: "landscape", wall: false, at: (W, D) => [700, D / 2] },
+    ]
+  },
+  sleep: {
+    name: "シンプル睡眠特化型",
+    door: (W, D) => ({ wall: "bottom", pos: snap(clamp(100, 0, Math.max(0, W - 800))), w: Math.min(800, W), inward: true, hinge: "start" }),
+    win: (W, D) => {
+      const w = Math.min(1200, W);
+      return {
+        kind: "waist",
+        label: "腰高窓",
+        wall: "top",
+        pos: snap(clamp((W - w) / 2, 0, Math.max(0, W - w))),
+        w,
+        sill: 900,
+        h: 1100,
+      };
+    },
+    parts: [
+      { cat: "bed",   v: 1, prefer: "portrait", wall: true, at: (W, D) => [W / 2, 0] },
+      { cat: "side",  v: 0, prefer: null, wall: true, at: (W, D, p) => { const b = p.find(i => i.cat === "bed"); return b ? [b.x - AUTO_GAP - 200, 200] : [200, 200]; } },
+      { cat: "side",  v: 0, prefer: null, wall: true, at: (W, D, p) => { const b = p.find(i => i.cat === "bed"); return b ? [b.x + b.w + AUTO_GAP + 200, 200] : [W - 200, 200]; } },
+      { cat: "shelf", v: 0, prefer: "landscape", wall: true, at: (W, D) => [W, D] },
+    ]
+  },
 };
 
 function autoCandidates(max) {
@@ -1360,34 +1639,78 @@ function autoCandidates(max) {
   return [...s];
 }
 
+// 柱や出っ張り壁を避けて壁面の開口部配置スロットを探す
+function findWallOpeningPos(wall, len, prefPos, W, D, depthCheck = 400) {
+  const maxPos = Math.max(0, (wall === "top" || wall === "bottom" ? W : D) - len);
+  const clampedPref = snap(clamp(prefPos, 0, maxPos));
+  const cands = [clampedPref, ...autoCandidates(maxPos)].sort((a, b) => Math.abs(a - clampedPref) - Math.abs(b - clampedPref));
+  for (const pos of cands) {
+    const zone = wall === "top"    ? { x: pos, y: 0, w: len, d: depthCheck }
+               : wall === "bottom" ? { x: pos, y: D - depthCheck, w: len, d: depthCheck }
+               : wall === "left"   ? { x: 0, y: pos, w: depthCheck, d: len }
+                                   : { x: W - depthCheck, y: pos, w: depthCheck, d: len };
+    if (!blocks.some(b => rectsOverlap(zone, b))) return pos;
+  }
+  return clampedPref;
+}
+
 function autoPlace(spec, placed, W, D) {
   const [, bw, bd] = CAT[spec.cat].variants[spec.v];
   const [tx, ty] = spec.at(W, D, placed);
-  let best = null;
-  [[bw, bd], [bd, bw]].forEach(([w, d], oi) => {
-    if (oi === 1 && w === d) return;
-    if (w > W || d > D) return;
-    const mismatch = spec.prefer && w !== d && ((spec.prefer === "portrait") !== (d > w));
-    const pen = mismatch ? 2500 : 0;
-    const xs = autoCandidates(W - w), ys = autoCandidates(D - d);
-    for (const x of xs) for (const y of ys) {
-      if (spec.wall && !(x === 0 || y === 0 || x === W - w || y === D - d)) continue;
-      let ok = true, soft = 0;
-      for (const o of placed) {
-        const dx = Math.max(0, x - (o.x + o.w), o.x - (x + w));
-        const dy = Math.max(0, y - (o.y + o.d), o.y - (y + d));
-        if (dx < AUTO_GAP && dy < AUTO_GAP) { ok = false; break; }   // 100mm以上の隙間を確保
-        if (Math.max(dx, dy) < AUTO_AISLE) soft += 150;               // 通路600mm未満は減点
+  const catH = CAT[spec.cat].h;
+
+  // 1stパス: 厳格モード (strict=true: ドア開閉扇形・窓ゾーン・柱・家具重複を100%完全除外)
+  // 2ndパス: 万一超極小部屋などで厳格配置できない場合のフォールバック
+  for (const strict of [true, false]) {
+    let best = null;
+    const orientations = [[bw, bd]];
+    if (bw !== bd) orientations.push([bd, bw]);
+
+    for (const [w, d] of orientations) {
+      if (w > W || d > D) continue;
+      const mismatch = spec.prefer && w !== d && ((spec.prefer === "portrait") !== (d > w));
+      const pen = mismatch ? 2500 : 0;
+      const xs = autoCandidates(W - w), ys = autoCandidates(D - d);
+
+      for (const x of xs) {
+        for (const y of ys) {
+          if (spec.wall && !(x === 0 || y === 0 || x === W - w || y === D - d)) continue;
+
+          // 1. 家具同士の隙間 (AUTO_GAP=100mm以上)
+          let ok = true, soft = 0;
+          for (const o of placed) {
+            const dx = Math.max(0, x - (o.x + o.w), o.x - (x + w));
+            const dy = Math.max(0, y - (o.y + o.d), o.y - (y + d));
+            if (dx < AUTO_GAP && dy < AUTO_GAP) { ok = false; break; }
+            if (Math.max(dx, dy) < AUTO_AISLE) soft += 150;
+          }
+          if (!ok) continue;
+
+          // 2. 柱・構造物ゾーンへの進入禁止
+          if (blocks.some(b => rectsOverlap({ x, y, w, d }, b))) continue;
+
+          // 3. ドア開閉扇形エリア（配置禁止領域）
+          const hitDoor = doors.some(dr => doorSwingHits(dr, { x, y, w, d }));
+          if (hitDoor) {
+            if (strict) continue;
+            soft += 10000;
+          }
+
+          // 4. 窓ゾーン（掃き出し窓の前400mm、または腰高窓の採光遮断）
+          const hitWin = wins.some(wn => winBlocks(wn, { x, y, w, d, h: catH }));
+          if (hitWin) {
+            if (strict) continue;
+            soft += 8000;
+          }
+
+          const sc = Math.hypot(x + w / 2 - tx, y + d / 2 - ty) + pen + soft;
+          if (!best || sc < best.sc) best = { x, y, w, d, sc };
+        }
       }
-      if (!ok) continue;
-      if (blocks.some(b => rectsOverlap({ x, y, w, d }, b))) continue;           // 柱・欠けには置かない
-      if (wins.some(wn => winBlocks(wn, { x, y, w, d, h: CAT[spec.cat].h }))) soft += 2500; // 窓を塞がない
-      if (doors.some(dr => doorSwingHits(dr, { x, y, w, d }))) soft += 3000; // ドアの開閉範囲は避ける
-      const sc = Math.hypot(x + w / 2 - tx, y + d / 2 - ty) + pen + soft;
-      if (!best || sc < best.sc) best = { x, y, w, d, sc };
     }
-  });
-  return best;
+    if (best) return best;
+  }
+  return null;
 }
 
 let toastTimer = null;
@@ -1398,42 +1721,133 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
 }
 
-function runAutoLayout() {
-  const layout = AUTO_LAYOUTS[$("autoType").value];
-  if (!confirm("現在の配置をリセットして自動配置しますか？")) return;
-  const W = room.w, D = room.d, placed = [];
+function runAutoLayout(overrideType) {
+  const typeKey = (typeof overrideType === "string" && overrideType) ? overrideType : $("autoType").value;
+  if ($("autoType")) $("autoType").value = typeKey;
+  const layout = AUTO_LAYOUTS[typeKey];
+  if (!layout) return;
+
+  const hasExisting = items.length > 0 || doors.length > 0 || wins.length > 0;
+  if (hasExisting && !confirm("現在の家具・ドア・窓をリセットして自動配置しますか？")) return;
+
+  // 1. 現在の家具・ドア・窓をクリア（初期化）
+  items = [];
+  doors = [];
+  wins = [];
+  select(null);
+
+  const W = room.w, D = room.d;
+
+  // 2. ドア・窓（建具）を部屋寸法に合わせて自動配置
+  if (layout.door) {
+    const rawDoor = layout.door(W, D);
+    const dPos = findWallOpeningPos(rawDoor.wall, rawDoor.w, rawDoor.pos, W, D, rawDoor.w);
+    const autoDoor = {
+      id: nextDoorId++,
+      wall: rawDoor.wall,
+      pos: dPos,
+      w: rawDoor.w,
+      inward: rawDoor.inward !== false,
+      hinge: rawDoor.hinge || "start",
+    };
+    clampDoor(autoDoor);
+    doors.push(autoDoor);
+  }
+
+  if (layout.win) {
+    const rawWin = layout.win(W, D);
+    const wPos = findWallOpeningPos(rawWin.wall, rawWin.w, rawWin.pos, W, D, 400);
+    const autoWin = {
+      id: nextWinId++,
+      kind: rawWin.kind,
+      label: rawWin.label,
+      wall: rawWin.wall,
+      pos: wPos,
+      w: rawWin.w,
+      sill: rawWin.sill,
+      h: rawWin.h,
+    };
+    clampWin(autoWin);
+    wins.push(autoWin);
+  }
+
+  // 3. ドア開閉扇形・窓ゾーンを配置禁止領域として家具を安全配置
+  const placed = [];
   let failed = 0;
   layout.parts.forEach(spec => {
-    const c = CAT[spec.cat], [vn, , ] = c.variants[spec.v];
+    const c = CAT[spec.cat], [vn] = c.variants[spec.v];
     const pos = autoPlace(spec, placed, W, D);
     if (!pos) { failed++; return; }
     placed.push({
       id: nextId++, cat: c.key, name: vn === "標準" ? c.label : `${c.label}（${vn}）`,
       w: pos.w, d: pos.d, h: c.h, color: c.color, x: pos.x, y: pos.y,
-      // 背もたれ・画面が部屋の中央を向くよう、下半分に置く家具は3Dで180°回す
       flip: ["sofa", "tv", "shelf"].includes(c.key) && pos.y + pos.d / 2 > D / 2,
     });
   });
   items = placed;
+
+  // 4. 2Dキャンバスを再描画し、3Dビュー用メッシュデータも同期
+  closeSidebar();
   select(null);
+  draw();
+  if (three && three.running) buildScene(false);
+
   toast(failed ? `レイアウトを自動生成しました（部屋が狭く${failed}点は配置できませんでした）`
-               : `レイアウトを自動生成しました（${layout.name}）`);
+               : `レイアウトを自動生成しました（扉・窓・家具一式）`);
 }
-$("autoRun").onclick = runAutoLayout;
+$("autoRun").onclick = () => runAutoLayout();
+
+// ヘッダーのクイックボタン & お任せモーダル制御
+$("btn3dQuick").onclick = () => {
+  $("autoModal").classList.remove("open");
+  open3d();
+};
+
+$("btnAutoQuick").onclick = e => {
+  e.stopPropagation();
+  closeSidebar();
+  $("helpPanel").classList.remove("open");
+  $("autoModal").classList.toggle("open");
+};
+
+$("closeAutoModal").onclick = () => $("autoModal").classList.remove("open");
+$("autoModal").onclick = e => {
+  if (e.target === $("autoModal")) $("autoModal").classList.remove("open");
+};
+
+document.querySelectorAll(".auto-opt-btn").forEach(btn => {
+  btn.onclick = () => {
+    const type = btn.getAttribute("data-type");
+    $("autoModal").classList.remove("open");
+    runAutoLayout(type);
+  };
+});
 
 renderCats();
 renderStds();
 renderDetail();
 
 // 使い方ガイドの開閉
-$("helpLink").onclick = e => { e.preventDefault(); e.stopPropagation(); $("helpPanel").classList.toggle("open"); };
-document.addEventListener("click", e => { if (!$("helpPanel").contains(e.target)) $("helpPanel").classList.remove("open"); });
+const toggleHelp = e => {
+  e.preventDefault(); e.stopPropagation();
+  $("autoModal").classList.remove("open");
+  $("helpPanel").classList.toggle("open");
+};
+$("helpLink").onclick = toggleHelp;
+if ($("helpLinkMobile")) $("helpLinkMobile").onclick = toggleHelp;
+document.addEventListener("click", e => {
+  if (!$("helpPanel").contains(e.target) && e.target !== $("helpLink") && e.target !== $("helpLinkMobile")) {
+    $("helpPanel").classList.remove("open");
+  }
+});
 
-// 初期状態: 6畳間（3600×2700、天井高2400）にシングルベッドとワークデスクを壁際へ配置
+// 初期状態: 6畳間（3600×2700、天井高2400）にドア・窓と家具を壁際へ配置
 (function initSample() {
   room.w = 3600; room.d = 2700; room.h = 2400;
   $("w").value = room.w; $("d").value = room.d; $("rh").value = room.h;
   $("wVal").textContent = room.w; $("dVal").textContent = room.d; $("hVal").textContent = room.h;
+  doors.push({ id: nextDoorId++, wall: "bottom", pos: 2700, w: 800, inward: true, hinge: "end" });
+  wins.push({ id: nextWinId++, kind: "waist", label: "腰高窓", wall: "top", pos: 1200, w: 1200, sill: 900, h: 1100 });
   const bed = CAT.bed, desk = CAT.desk;
   const [, bw, bd] = bed.variants[0], [, dw, dd] = desk.variants[0];
   items.push({ id: nextId++, cat: "bed", name: "ベッド（シングル）", w: bw, d: bd, h: bed.h, color: bed.color, x: 0, y: 0 });
