@@ -23,7 +23,7 @@
 <meta name="twitter:description" content="部屋の寸法に合わせて家具の配置や動線・ドア干渉を2D/3Dで即座にシミュレーションできる無料Webツール。サイズから実在の家具を逆引き検索可能。">
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color: #1e293b; background: #eef1f5; overflow: hidden; }
+  body { margin: 0; height: 100vh; height: 100dvh; display: flex; flex-direction: column; font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif; color: #1e293b; background: #eef1f5; overflow: hidden; }
   #app { flex: 1; display: flex; min-height: 0; position: relative; }
   #sidebar { width: 310px; padding: 16px; background: #f3f4f6; border-right: 1px solid #d1d5db; overflow-y: auto; flex-shrink: 0; -webkit-overflow-scrolling: touch; }
   #sidebar h1 { font-size: 16px; margin: 0 0 12px; }
@@ -51,6 +51,8 @@
   a.link { display: block; text-align: center; padding: 8px; color: #fff; border-radius: 4px; text-decoration: none; font-size: 12px; margin-bottom: 6px; }
   a.amazon { background: #f59e0b; color: #111; }
   a.rakuten { background: #bf0000; }
+  a.taobao { background: #ff5000; color: #fff; font-weight: bold; }
+  a.taobao:hover { background: #e04600; }
   #main { flex: 1; display: flex; flex-direction: column; background: #fff; min-width: 0; min-height: 0; }
   #stage { flex: 1; position: relative; min-height: 0; }
   #dock { flex-shrink: 0; min-height: 96px; padding: 8px 16px; padding-bottom: max(8px, env(safe-area-inset-bottom, 12px)); border-top: 1px solid #d1d5db; background: #f9fafb; display: flex; align-items: center; }
@@ -298,6 +300,8 @@
       <button type="button" id="langJa" class="lang-btn active">JP</button>
       <span class="lang-divider">|</span>
       <button type="button" id="langEn" class="lang-btn">EN</button>
+      <span class="lang-divider">|</span>
+      <button type="button" id="langZh" class="lang-btn">中文</button>
     </div>
     <button id="btnAutoQuick" class="hdr-btn auto" type="button" title="おすすめ自動配置" data-i18n="autoQuick">✨ お任せ</button>
     <button id="btn3dQuick" class="hdr-btn view3d" type="button" title="3Dビューで確認" data-i18n="view3dQuick">🧊 3D</button>
@@ -441,14 +445,21 @@
   </div>
 </div>
 <script>
-// ---- 多言語対応 (i18n: 日本語 / 英語) ----
+// ---- 多言語対応 (i18n: 日本語 / 英語 / 簡体字中国語) ----
 let currentLang = "ja";
 try {
   const savedLang = localStorage.getItem("roomgrid_lang");
-  if (savedLang === "ja" || savedLang === "en") {
+  if (savedLang === "ja" || savedLang === "en" || savedLang === "zh") {
     currentLang = savedLang;
-  } else if (navigator.language && !navigator.language.toLowerCase().startsWith("ja")) {
-    currentLang = "en";
+  } else {
+    const nav = (navigator.language || "").toLowerCase();
+    if (nav.startsWith("zh")) {
+      currentLang = "zh";
+    } else if (nav.startsWith("ja")) {
+      currentLang = "ja";
+    } else {
+      currentLang = "en";
+    }
   }
 } catch(e) {
   currentLang = "ja";
@@ -543,6 +554,7 @@ const TRANSLATIONS = {
     toastPartial: "レイアウトを自動生成しました（部屋が狭く一部配置できませんでした）",
     amazonSearch: "Search on Amazon (.com)",
     rakutenSearch: "楽天市場でこのサイズの{q}を探す",
+    taobaoSearch: "淘宝（Taobao）でこのサイズの家具を探す",
   },
   en: {
     menuToggle: "☰ Menu / Items",
@@ -632,6 +644,97 @@ const TRANSLATIONS = {
     toastPartial: "Layout generated (could not fit some items due to room size)",
     amazonSearch: "Search on Amazon (.com)",
     rakutenSearch: "Search on Rakuten",
+    taobaoSearch: "Search on Taobao by size",
+  },
+  zh: {
+    menuToggle: "☰ 家具与设置",
+    hdrSub: "RoomGrid - 轻量级室内布局与家具尺寸模拟器",
+    hdrTip: "※支持根据尺寸直接搜索匹配家具",
+    autoQuick: "✨ 智能推荐",
+    view3dQuick: "🧊 3D视图",
+    help: "使用指南",
+    helpTitle: "RoomGrid 使用指南",
+    help1: "从左侧（手机点击左上角「☰ 家具与设置」）添加家具，拖拽移动（R: 旋转90° / Delete: 删除）",
+    help2: "选中家具后可在底部控制栏调整长宽深，并点击直接在网店搜索对应尺寸商品",
+    help3: "添加门、窗户和立柱，可实时检测开门碰撞动线与采光遮挡（显示红色警报）",
+    help4: "点击「3D视图」或保存图片，可立体查看或导出户型设计图",
+    autoModalTitle: "✨ 智能推荐布局",
+    autoModalDesc: "综合考量动线、门窗开合与采光，一键自动规划全屋门窗及家具配置：",
+    autoWorkTitle: "① 单身办公/居家工作型",
+    autoWorkDesc: "单人床、电脑书桌、电视柜、收纳书架",
+    autoLivingTitle: "② 宽敞起居客厅型",
+    autoLivingDesc: "电视柜、双人沙发、餐桌椅组合、小茶几",
+    autoSleepTitle: "③ 舒适卧室睡眠型",
+    autoSleepDesc: "单人加宽床、床头柜×2、衣物收纳柜",
+    sidebarTitle: "户型与家具布局",
+    sidebarHdrTitle: "房间设置与添加家具",
+    sidebarClose: "✕ 关闭",
+    secDimensions: "房间尺寸 (mm)",
+    labelW: "宽度: ",
+    labelD: "进深: ",
+    labelH: "层高: ",
+    labelSnap: "网格吸附:",
+    snap50: "50mm",
+    snap100: "100mm（默认）",
+    snap455: "455mm（半间）",
+    snap910: "910mm（尺模数）",
+    btnSave2d: "保存户型图 (PNG)",
+    btnOpen3d: "3D视图",
+    secStruct: "建筑结构/立柱",
+    descStruct: "拖拽至墙角或边缘。凹角可在底部栏调整长宽。",
+    secDoor: "门窗",
+    btnAddDoor: "添加门 (开洞宽度800mm)",
+    descDoor: "沿墙面拖拽移动。开门方向与合页可在底部栏切换。",
+    secWin: "窗户（采光・通风）",
+    descWin: "沿墙面拖拽移动。窗前放置过高家具将提示遮挡采光。",
+    secAuto: "智能推荐布局",
+    optAutoWork: "① 单身办公/居家工作型",
+    optAutoLiving: "② 宽敞起居客厅型",
+    optAutoSleep: "③ 舒适卧室睡眠型",
+    btnAutoRun: "智能推荐布局",
+    secCats: "添加家具",
+    secStds: "常见标准规格",
+    infoText: "拖拽移动（100mm网格吸附）／R: 旋转90°／Delete: 删除<br>选中家具显示周围600mm动线通道（绿=通畅 / 橙=不足600mm狭窄通道）。<br>※预设尺寸仅供参考，请以实际选购商品为准。",
+    disclaimerMain: "本网站包含推广链接。通过指定链接购买商品可能会为本站提供微薄分成支持。",
+    disclaimerSummary: "关于广告与推广链接的声明",
+    disclaimerDetail: "※本网站作为独立工具提供户型布局与家具尺寸模拟。为维持服务器运作，页面包含部分合规电商推广链接。",
+    dockEmpty: "点击家具调整尺寸或搜索匹配商品",
+    btnRotate: "旋转90°",
+    btnDelete: "删除",
+    dimW: "宽度 W (mm)",
+    dimD: "进深 D (mm)",
+    dimH: "高度 H (mm)",
+    warnOverlap: "⚠ 检测到家具碰撞",
+    warnDoor: "⚠ 遮挡门窗开合动线",
+    warnBlock: "⚠ 遮挡建筑立柱/突出结构",
+    warnWinFloor: "⚠ 阻挡落地窗通行通道",
+    warnWinWaist: "⚠ 遮挡窗户采光",
+    door: "门",
+    opening: "门窗洞口",
+    window: "窗户",
+    structure: "建筑结构/立柱",
+    doorWidth: "开洞宽度 (mm)",
+    doorPos: "墙面位置 (mm)",
+    winWidth: "窗户宽度 (mm)",
+    winPos: "墙面位置 (mm)",
+    dSwingLabel: "开合方向",
+    dHingeLabel: "合页位置",
+    inward: "向内开",
+    outward: "向外开",
+    toggle: "切换",
+    heightToCeiling: "高度: 直达天花板",
+    pillarGuide: "若家具重叠将显示红色警告。<br>拖拽吸附至墙面或墙角（自动贴合网格）。",
+    winFloorGuide: "落地开窗。窗前400mm内摆放家具将发出通道阻挡警告。",
+    winWaistGuide: "窗台高度900mm。高于900mm的家具将发出采光遮挡警告（矮床/书桌允许）。",
+    close3d: "返回2D平面",
+    save3d: "保存3D视图图片",
+    help3d: "单指/左键拖拽: 旋转 ｜ 滚轮/双指捏合: 缩放 ｜ 双指/右键拖拽: 平移",
+    confirmReset: "重新自动推荐将清空当前已摆放的家具与门窗，是否继续？",
+    toastSuccess: "已自动生成推荐布局（门窗与全套家具）！",
+    toastPartial: "已自动推荐布局（房间偏小，部分家具未能放入）",
+    amazonSearch: "在 Amazon 上搜索此尺寸",
+    rakutenSearch: "在乐天市场搜索此尺寸",
+    taobaoSearch: "在淘宝搜索该尺寸家具",
   }
 };
 
@@ -640,7 +743,7 @@ function t(k) {
 }
 
 function setLanguage(lang) {
-  currentLang = lang === "en" ? "en" : "ja";
+  currentLang = (lang === "zh" || lang === "en") ? lang : "ja";
   try {
     localStorage.setItem("roomgrid_lang", currentLang);
   } catch(e) {}
@@ -659,34 +762,34 @@ const AFFILIATE_CONFIG = {
   }
 };
 
-// ---- カテゴリ（汎用ブロック）。q = 検索キーワード、variants = [名称, 幅, 奥行き, 英語名称] ----
+// ---- カテゴリ（汎用ブロック）。q = 検索キーワード、variants = [名称, 幅, 奥行き, 英語名称, 中国語名称] ----
 const CATEGORIES = [
-  { key: "desk",   label: "デスク・机",           en: "Desk",           q: "デスク",             h: 720,  color: "#e0c89a", variants: [["標準", 1200, 600, "Standard"]] },
-  { key: "bed",    label: "ベッド",               en: "Bed",            q: "ベッド",             h: 450,  color: "#a5b4fc", variants: [["シングル", 1000, 2000, "Single"], ["セミダブル", 1200, 2000, "Semi-Double"], ["ダブル", 1400, 2000, "Double"]] },
-  { key: "sofa",   label: "ソファ",               en: "Sofa",           q: "ソファ",             h: 800,  color: "#f9a8d4", variants: [["2人掛け", 1400, 800, "2-Seater"], ["3人掛け", 1800, 850, "3-Seater"]] },
-  { key: "shelf",  label: "収納棚・本棚",         en: "Bookshelf",      q: "本棚",               h: 1800, color: "#86efac", variants: [["標準", 800, 400, "Standard"]] },
-  { key: "tv",     label: "テレビ台・ローボード", en: "TV Stand",       q: "テレビ台",           h: 400,  color: "#fdba74", variants: [["1200", 1200, 400, "1200"], ["1500", 1500, 400, "1500"]] },
-  { key: "dining", label: "ダイニングテーブル",   en: "Dining Table",   q: "ダイニングテーブル", h: 720,  color: "#93c5fd", variants: [["標準", 1200, 800, "Standard"]] },
-  { key: "table",  label: "ローテーブル",         en: "Coffee Table",   q: "ローテーブル",       h: 380,  color: "#d8b4fe", variants: [["標準", 900, 500, "Standard"]] },
-  { key: "side",   label: "サイドテーブル",       en: "Side Table",     q: "サイドテーブル",     h: 500,  color: "#fda4af", variants: [["標準", 400, 400, "Standard"]] },
+  { key: "desk",   label: "デスク・机",           en: "Desk",           zh: "书桌/电脑桌",   searchZh: "电脑桌",   q: "デスク",             h: 720,  color: "#e0c89a", variants: [["標準", 1200, 600, "Standard", "标准"]] },
+  { key: "bed",    label: "ベッド",               en: "Bed",            zh: "床",           searchZh: "床",       q: "ベッド",             h: 450,  color: "#a5b4fc", variants: [["シングル", 1000, 2000, "Single", "单人床"], ["セミダブル", 1200, 2000, "Semi-Double", "单人加宽"], ["ダブル", 1400, 2000, "Double", "双人床"]] },
+  { key: "sofa",   label: "ソファ",               en: "Sofa",           zh: "沙发",         searchZh: "沙发",     q: "ソファ",             h: 800,  color: "#f9a8d4", variants: [["2人掛け", 1400, 800, "2-Seater", "双人沙发"], ["3人掛け", 1800, 850, "3-Seater", "三人沙发"]] },
+  { key: "shelf",  label: "収納棚・本棚",         en: "Bookshelf",      zh: "书架/收纳",     searchZh: "书架",     q: "本棚",               h: 1800, color: "#86efac", variants: [["標準", 800, 400, "Standard", "标准"]] },
+  { key: "tv",     label: "テレビ台・ローボード", en: "TV Stand",       zh: "电视柜",       searchZh: "电视柜",   q: "テレビ台",           h: 400,  color: "#fdba74", variants: [["1200", 1200, 400, "1200", "1200"], ["1500", 1500, 400, "1500", "1500"]] },
+  { key: "dining", label: "ダイニングテーブル",   en: "Dining Table",   zh: "餐桌",         searchZh: "餐桌",     q: "ダイニングテーブル", h: 720,  color: "#93c5fd", variants: [["標準", 1200, 800, "Standard", "标准"]] },
+  { key: "table",  label: "ローテーブル",         en: "Coffee Table",   zh: "茶几/矮桌",     searchZh: "茶几",     q: "ローテーブル",       h: 380,  color: "#d8b4fe", variants: [["標準", 900, 500, "Standard", "标准"]] },
+  { key: "side",   label: "サイドテーブル",       en: "Side Table",     zh: "床头柜/边几",   searchZh: "边几",     q: "サイドテーブル",     h: 500,  color: "#fda4af", variants: [["標準", 400, 400, "Standard", "标准"]] },
 ];
 const CAT = Object.fromEntries(CATEGORIES.map(c => [c.key, c]));
 
 // ---- おすすめの標準規格（ブランド風の定番サイズ） ----
 const STANDARDS = [
-  { brand: "無印良品風", brandEn: "MUJI style",   cat: "bed",    name: "木製ベッド シングル",       nameEn: "Wood Bed Single",         w: 1030, d: 2020, h: 380,  color: "#d6b88a" },
-  { brand: "無印良品風", brandEn: "MUJI style",   cat: "dining", name: "折りたたみテーブル",       nameEn: "Folding Table",           w: 1200, d: 700,  h: 720,  color: "#e8d5b0" },
-  { brand: "無印良品風", brandEn: "MUJI style",   cat: "shelf",  name: "スタッキングシェルフ 3段", nameEn: "Stacking Shelf 3-Tier",   w: 1220, d: 285,  h: 830,  color: "#c9a77a" },
-  { brand: "無印良品風", brandEn: "MUJI style",   cat: "sofa",   name: "2人掛けソファ",            nameEn: "2-Seater Sofa",           w: 1380, d: 850,  h: 800,  color: "#b8c4cc" },
-  { brand: "ニトリ風",   brandEn: "Nitori style", cat: "sofa",   name: "2人掛けソファ",            nameEn: "2-Seater Sofa",           w: 1340, d: 800,  h: 800,  color: "#a8b5a0" },
-  { brand: "ニトリ風",   brandEn: "Nitori style", cat: "tv",     name: "テレビ台 ローボード",      nameEn: "TV Lowboard",             w: 1500, d: 400,  h: 400,  color: "#8b6b4a" },
-  { brand: "ニトリ風",   brandEn: "Nitori style", cat: "desk",   name: "ワークデスク",             nameEn: "Work Desk",               w: 1000, d: 600,  h: 720,  color: "#d9c7a3" },
-  { brand: "ニトリ風",   brandEn: "Nitori style", cat: "bed",    name: "セミダブルベッド",         nameEn: "Semi-Double Bed",         w: 1230, d: 2000, h: 400,  color: "#b99a78" },
-  { brand: "IKEA風",     brandEn: "IKEA style",   cat: "shelf",  name: "本棚 (BILLY相当)",         nameEn: "Bookcase (BILLY type)",   w: 800,  d: 280,  h: 2020, color: "#f2f2f2" },
-  { brand: "IKEA風",     brandEn: "IKEA style",   cat: "shelf",  name: "シェルフ (KALLAX相当)",    nameEn: "Shelf (KALLAX type)",     w: 770,  d: 390,  h: 770,  color: "#e5e5e5" },
-  { brand: "IKEA風",     brandEn: "IKEA style",   cat: "bed",    name: "ベッド (HEMNES相当)",      nameEn: "Bed (HEMNES type)",       w: 1000, d: 2110, h: 660,  color: "#efe6d8" },
-  { brand: "IKEA風",     brandEn: "IKEA style",   cat: "shelf",  name: "チェスト 4段",             nameEn: "4-Drawer Chest",          w: 800,  d: 480,  h: 1000, color: "#d8d8d8" },
-  { brand: "IKEA風",     brandEn: "IKEA style",   cat: "desk",   name: "デスク",                   nameEn: "Desk",                    w: 1200, d: 600,  h: 730,  color: "#cfd8e3" },
+  { brand: "無印良品風", brandEn: "MUJI style",   brandZh: "无印良品风", cat: "bed",    name: "木製ベッド シングル",       nameEn: "Wood Bed Single",         nameZh: "实木单人床",         w: 1030, d: 2020, h: 380,  color: "#d6b88a" },
+  { brand: "無印良品風", brandEn: "MUJI style",   brandZh: "无印良品风", cat: "dining", name: "折りたたみテーブル",       nameEn: "Folding Table",           nameZh: "折叠餐桌",           w: 1200, d: 700,  h: 720,  color: "#e8d5b0" },
+  { brand: "無印良品風", brandEn: "MUJI style",   brandZh: "无印良品风", cat: "shelf",  name: "スタッキングシェルフ 3段", nameEn: "Stacking Shelf 3-Tier",   nameZh: "组合收纳架 3层",     w: 1220, d: 285,  h: 830,  color: "#c9a77a" },
+  { brand: "無印良品風", brandEn: "MUJI style",   brandZh: "无印良品风", cat: "sofa",   name: "2人掛けソファ",            nameEn: "2-Seater Sofa",           nameZh: "双人沙发",           w: 1380, d: 850,  h: 800,  color: "#b8c4cc" },
+  { brand: "ニトリ風",   brandEn: "Nitori style", brandZh: "宜得利风",   cat: "sofa",   name: "2人掛けソファ",            nameEn: "2-Seater Sofa",           nameZh: "双人沙发",           w: 1340, d: 800,  h: 800,  color: "#a8b5a0" },
+  { brand: "ニトリ風",   brandEn: "Nitori style", brandZh: "宜得利风",   cat: "tv",     name: "テレビ台 ローボード",      nameEn: "TV Lowboard",             nameZh: "矮款电视柜",         w: 1500, d: 400,  h: 400,  color: "#8b6b4a" },
+  { brand: "ニトリ風",   brandEn: "Nitori style", brandZh: "宜得利风",   cat: "desk",   name: "ワークデスク",             nameEn: "Work Desk",               nameZh: "电脑办公桌",         w: 1000, d: 600,  h: 720,  color: "#d9c7a3" },
+  { brand: "ニトリ風",   brandEn: "Nitori style", brandZh: "宜得利风",   cat: "bed",    name: "セミダブルベッド",         nameEn: "Semi-Double Bed",         nameZh: "单人加宽床",         w: 1230, d: 2000, h: 400,  color: "#b99a78" },
+  { brand: "IKEA風",     brandEn: "IKEA style",   brandZh: "宜家风",     cat: "shelf",  name: "本棚 (BILLY相当)",         nameEn: "Bookcase (BILLY type)",   nameZh: "书架 (类似毕利)",    w: 800,  d: 280,  h: 2020, color: "#f2f2f2" },
+  { brand: "IKEA風",     brandEn: "IKEA style",   brandZh: "宜家风",     cat: "shelf",  name: "シェルフ (KALLAX相当)",    nameEn: "Shelf (KALLAX type)",     nameZh: "置物架 (类似卡莱克)", w: 770,  d: 390,  h: 770,  color: "#e5e5e5" },
+  { brand: "IKEA風",     brandEn: "IKEA style",   brandZh: "宜家风",     cat: "bed",    name: "ベッド (HEMNES相当)",      nameEn: "Bed (HEMNES type)",       nameZh: "双人床 (类似汉尼斯)", w: 1000, d: 2110, h: 660,  color: "#efe6d8" },
+  { brand: "IKEA風",     brandEn: "IKEA style",   brandZh: "宜家风",     cat: "shelf",  name: "チェスト 4段",             nameEn: "4-Drawer Chest",          nameZh: "四斗抽屉柜",         w: 800,  d: 480,  h: 1000, color: "#d8d8d8" },
+  { brand: "IKEA風",     brandEn: "IKEA style",   brandZh: "宜家风",     cat: "desk",   name: "デスク",                   nameEn: "Desk",                    nameZh: "书桌/写字台",         w: 1200, d: 600,  h: 730,  color: "#cfd8e3" },
 ];
 
 let SNAP = 100;
@@ -695,7 +798,7 @@ const room = { w: 4000, d: 3000, h: 2400 };
 let doors = [], selectedDoor = null, nextDoorId = 1, doorDrag = null;
 let blocks = [], selectedBlock = null, nextBlockId = 1, blockDrag = null;
 let wins = [], selectedWin = null, nextWinId = 1, winDrag = null;
-let items = [], selected = null, nextId = 1, currentBrand = currentLang === "en" ? "MUJI style" : "無印良品風";
+let items = [], selected = null, nextId = 1, currentBrand = currentLang === "zh" ? "无印良品风" : (currentLang === "en" ? "MUJI style" : "無印良品風");
 let scale = 0.1, ox = 0, oy = 0;
 
 const cv = document.getElementById("c"), ctx = cv.getContext("2d");
@@ -705,6 +808,11 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 function itemDisplayName(it) {
+  if (currentLang === "zh") {
+    if (it.nameZh) return it.nameZh;
+    const cat = CAT[it.cat];
+    return cat ? (cat.zh || cat.label) : it.name;
+  }
   if (currentLang === "en") {
     if (it.nameEn) return it.nameEn;
     const cat = CAT[it.cat];
@@ -719,17 +827,18 @@ function renderCats() {
   CATEGORIES.forEach(c => {
     const box = document.createElement("div");
     box.className = "cat";
-    const label = currentLang === "en" ? c.en : c.label;
+    const label = currentLang === "zh" ? c.zh : (currentLang === "en" ? c.en : c.label);
     box.innerHTML = `<b><span class="sw" style="background:${c.color}"></span>${esc(label)}</b>`;
-    c.variants.forEach(([vn, w, d, vnEn = "Standard"]) => {
+    c.variants.forEach(([vn, w, d, vnEn = "Standard", vnZh = "标准"]) => {
       const isStd = vn === "標準";
-      const varText = currentLang === "en" ? (isStd ? "Add" : vnEn) : (isStd ? "追加" : vn);
+      const varText = currentLang === "zh" ? (isStd ? "添加" : vnZh) : (currentLang === "en" ? (isStd ? "Add" : vnEn) : (isStd ? "追加" : vn));
       const btn = document.createElement("button");
       btn.textContent = `${varText} ${w}×${d}`;
       btn.onclick = () => addItem({
         cat: c.key,
         name: isStd ? c.label : `${c.label}（${vn}）`,
         nameEn: isStd ? c.en : `${c.en} (${vnEn})`,
+        nameZh: isStd ? c.zh : `${c.zh}（${vnZh}）`,
         w, d, h: c.h, color: c.color
       });
       box.appendChild(btn);
@@ -737,9 +846,16 @@ function renderCats() {
     $("cats").appendChild(box);
   });
 }
+
+function getBrandName(p) {
+  if (currentLang === "zh") return p.brandZh || p.brand;
+  if (currentLang === "en") return p.brandEn || p.brand;
+  return p.brand;
+}
+
 function renderStds() {
   $("tabs").innerHTML = "";
-  const brands = [...new Set(STANDARDS.map(p => currentLang === "en" ? p.brandEn : p.brand))];
+  const brands = [...new Set(STANDARDS.map(p => getBrandName(p)))];
   if (!brands.includes(currentBrand)) currentBrand = brands[0];
   brands.forEach(b => {
     const btn = document.createElement("button");
@@ -749,11 +865,11 @@ function renderStds() {
     $("tabs").appendChild(btn);
   });
   $("stds").innerHTML = "";
-  STANDARDS.filter(p => (currentLang === "en" ? p.brandEn : p.brand) === currentBrand).forEach(p => {
+  STANDARDS.filter(p => getBrandName(p) === currentBrand).forEach(p => {
     const btn = document.createElement("button");
     btn.className = "std";
-    const pName = currentLang === "en" ? p.nameEn : p.name;
-    const catLabel = currentLang === "en" ? CAT[p.cat].en : CAT[p.cat].label;
+    const pName = currentLang === "zh" ? (p.nameZh || p.name) : (currentLang === "en" ? p.nameEn : p.name);
+    const catLabel = currentLang === "zh" ? (CAT[p.cat].zh || CAT[p.cat].label) : (currentLang === "en" ? CAT[p.cat].en : CAT[p.cat].label);
     btn.innerHTML = `<span class="sw" style="background:${p.color}"></span>${esc(pName)}<small>${catLabel} / ${p.w} × ${p.d} × ${p.h} mm</small>`;
     btn.onclick = () => addItem(p);
     $("stds").appendChild(btn);
@@ -778,6 +894,7 @@ function addItem(p) {
     cat: p.cat,
     name: p.name,
     nameEn: p.nameEn || (CAT[p.cat] ? CAT[p.cat].en : p.name),
+    nameZh: p.nameZh || (CAT[p.cat] ? (CAT[p.cat].zh || p.name) : p.name),
     w: p.w,
     d: p.d,
     h: p.h,
@@ -804,12 +921,19 @@ function constrain(it) {
 function searchUrls(it) {
   const cm = mm => Math.round(mm / 10);
   const wCm = cm(it.w), dCm = cm(it.d);
+  if (currentLang === "zh") {
+    const cat = CAT[it.cat];
+    const catZh = (cat && (cat.searchZh || cat.zh)) ? (cat.searchZh || cat.zh) : "家具";
+    const searchKeyword = `${catZh} 宽${wCm}cm 深${dCm}cm`;
+    const taobao = `https://s.taobao.com/search?q=${encodeURIComponent(searchKeyword)}`;
+    return { amazon: "", rakuten: "", taobao };
+  }
   if (currentLang === "en") {
     const catEn = (CAT[it.cat] && CAT[it.cat].en) ? CAT[it.cat].en.toLowerCase() : "furniture";
     const searchKeyword = `${catEn} ${wCm}cm ${dCm}cm`;
     let amazon = `https://www.amazon.com/s?k=${encodeURIComponent(searchKeyword)}`;
     if (AFFILIATE_CONFIG.amazonUsTag) amazon += `&tag=${encodeURIComponent(AFFILIATE_CONFIG.amazonUsTag)}`;
-    return { amazon, rakuten: "" };
+    return { amazon, rakuten: "", taobao: "" };
   }
   const searchKeyword = `${CAT[it.cat].q} 幅${wCm}cm 奥行${dCm}cm`;
   let amazon = `https://www.amazon.co.jp/s?k=${encodeURIComponent(searchKeyword)}`;
@@ -822,7 +946,7 @@ function searchUrls(it) {
     const t = encodeURIComponent(rakuten);
     rakuten = `https://hb.afl.rakuten.co.jp/hgc/${encodeURIComponent(AFFILIATE_CONFIG.rakutenAfId)}/?pc=${t}&m=${t}`;
   }
-  return { amazon, rakuten };
+  return { amazon, rakuten, taobao: "" };
 }
 
 // ---- 詳細パネル ----
@@ -836,7 +960,7 @@ function renderDetail() {
   $("dockBody").classList.toggle("on", !!it);
   if (!it) { $("detailL").innerHTML = ""; $("detailR").innerHTML = ""; return; }
   const cat = CAT[it.cat];
-  const catLabel = currentLang === "en" ? cat.en : cat.label;
+  const catLabel = currentLang === "zh" ? (cat.zh || cat.label) : (currentLang === "en" ? cat.en : cat.label);
   $("detailL").innerHTML = `
     <div class="dtitle">
       <b>${esc(itemDisplayName(it))}</b><span class="sz" id="sizeTxt"></span>
@@ -853,7 +977,8 @@ function renderDetail() {
     </div>`;
   $("detailR").innerHTML = `
     <a id="lkA" class="link amazon" target="_blank" rel="noopener noreferrer"></a>
-    <a id="lkR" class="link rakuten" target="_blank" rel="nofollow noopener"></a>`;
+    <a id="lkR" class="link rakuten" target="_blank" rel="nofollow noopener"></a>
+    <a id="lkT" class="link taobao" target="_blank" rel="noopener noreferrer"></a>`;
   $("inW").oninput = applySize;
   $("inD").oninput = applySize;
   $("inH").oninput = applySize;
@@ -866,16 +991,26 @@ function syncDetail(force) {
   if (force || document.activeElement !== $("inD")) $("inD").value = it.d;
   if (force || document.activeElement !== $("inH")) $("inH").value = it.h;
   const u = searchUrls(it), q = CAT[it.cat].q;
-  if (currentLang === "en") {
+  if (currentLang === "zh") {
+    $("lkA").style.display = "none";
+    $("lkR").style.display = "none";
+    $("lkT").style.display = "";
+    $("lkT").href = u.taobao;
+    $("lkT").textContent = "在淘宝搜索该尺寸家具";
+  } else if (currentLang === "en") {
+    $("lkA").style.display = "";
     $("lkA").href = u.amazon;
     $("lkA").textContent = t("amazonSearch");
     $("lkR").style.display = "none";
+    $("lkT").style.display = "none";
   } else {
+    $("lkA").style.display = "";
     $("lkA").href = u.amazon;
     $("lkA").textContent = `Amazonでこのサイズの${q}を探す`;
     $("lkR").style.display = "";
     $("lkR").href = u.rakuten;
     $("lkR").textContent = `楽天市場でこのサイズの${q}を探す`;
+    $("lkT").style.display = "none";
   }
 }
 function applySize() {
@@ -1003,6 +1138,10 @@ function gaps(it) {
 }
 
 function blockLabel(b) {
+  if (currentLang === "zh") {
+    if (b.labelZh) return b.labelZh;
+    return b.label === "欠け" ? "凹角" : b.label === "PS" ? "管道井" : "立柱";
+  }
   if (currentLang === "en") {
     if (b.labelEn) return b.labelEn;
     return b.label === "欠け" ? "Cutout" : b.label === "PS" ? "Pipe Space" : "Pillar";
@@ -1011,6 +1150,10 @@ function blockLabel(b) {
 }
 
 function winDisplayName(wn) {
+  if (currentLang === "zh") {
+    if (wn.labelZh) return wn.labelZh;
+    return wn.kind === "floor" ? "落地窗" : "标准窗";
+  }
   if (currentLang === "en") {
     if (wn.labelEn) return wn.labelEn;
     return wn.kind === "floor" ? "Patio Window" : "Window";
@@ -1184,7 +1327,7 @@ function draw() {
     });
     ctx.stroke();
     const winName = winDisplayName(wn);
-    const sillTxt = wn.sill ? (currentLang === "en" ? ` (Sill ${wn.sill})` : `（腰${wn.sill}）`) : "";
+    const sillTxt = wn.sill ? (currentLang === "zh" ? `（距地${wn.sill}）` : (currentLang === "en" ? ` (Sill ${wn.sill})` : `（腰${wn.sill}）`)) : "";
     const txt = `${winName} ${wn.w}×H${wn.h}${sillTxt}`;
     ctx.font = `600 ${10 * dpr}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
     const half = nx !== 0 ? ctx.measureText(txt).width / 2 + 8 * dpr : 14 * dpr;   // 左右の壁は文字が壁に被らないようずらす
@@ -1581,6 +1724,9 @@ window.addEventListener("keydown", e => { if (e.key === "Escape") { close3d(); $
 // ---- 壁の名称 ----
 const WALL_NAME = { top: "上辺", bottom: "下辺", left: "左辺", right: "右辺" };
 function wallName(w) {
+  if (currentLang === "zh") {
+    return { top: "上方墙面", bottom: "下方墙面", left: "左侧墙面", right: "右侧墙面" }[w] || w;
+  }
   if (currentLang === "en") {
     return { top: "Top Wall", bottom: "Bottom Wall", left: "Left Wall", right: "Right Wall" }[w] || w;
   }
@@ -1588,10 +1734,10 @@ function wallName(w) {
 }
 
 // ---- 窓（採光・通風） ----
-// wn = { kind: "floor"|"waist", label, labelEn, wall, pos, w, sill(床から), h(窓の高さ) }
+// wn = { kind: "floor"|"waist", label, labelEn, labelZh, wall, pos, w, sill(床から), h(窓の高さ) }
 const WINDOWS = [
-  { kind: "floor", label: "掃き出し窓", labelEn: "Patio Window", btn: "掃き出し窓（テラス窓）1600×H2000／床まで", btnEn: "Patio Window 1600×H2000 / Floor level", w: 1600, sill: 0,   h: 2000 },
-  { kind: "waist", label: "腰高窓",     labelEn: "Window",       btn: "腰高窓（標準窓）1200×H1100／床から900",   btnEn: "Standard Window 1200×H1100 / Sill 900",   w: 1200, sill: 900, h: 1100 },
+  { kind: "floor", label: "掃き出し窓", labelEn: "Patio Window", labelZh: "落地窗", btn: "掃き出し窓（テラス窓）1600×H2000／床まで", btnEn: "Patio Window 1600×H2000 / Floor level", btnZh: "落地窗 1600×高2000 / 距地0", w: 1600, sill: 0,   h: 2000 },
+  { kind: "waist", label: "腰高窓",     labelEn: "Window",       labelZh: "标准窗", btn: "腰高窓（標準窓）1200×H1100／床から900",   btnEn: "Standard Window 1200×H1100 / Sill 900",   btnZh: "标准窗 1200×高1100 / 距地900", w: 1200, sill: 900, h: 1100 },
 ];
 const WIN_ZONE = 400;   // 窓の前の採光・アクセスゾーンの奥行き(mm)
 
@@ -1632,7 +1778,7 @@ function moveWin(wn, p) {
   clampWin(wn);
 }
 function addWin(s) {
-  const wn = { id: nextWinId++, kind: s.kind, label: s.label, labelEn: s.labelEn, wall: "top", pos: 0, w: s.w, sill: s.sill, h: s.h };
+  const wn = { id: nextWinId++, kind: s.kind, label: s.label, labelEn: s.labelEn, labelZh: s.labelZh, wall: "top", pos: 0, w: s.w, sill: s.sill, h: s.h };
   // ドア・既存の窓と開口が重ならない壁を探す（上→左→右→下）
   for (const wall of ["top", "left", "right", "bottom"]) {
     wn.wall = wall;
@@ -1651,7 +1797,7 @@ function renderWinBtns() {
   $("winBtns").innerHTML = "";
   WINDOWS.forEach(s => {
     const btn = document.createElement("button");
-    btn.textContent = currentLang === "en" ? (s.btnEn || s.btn) : s.btn;
+    btn.textContent = currentLang === "zh" ? (s.btnZh || s.btn) : (currentLang === "en" ? (s.btnEn || s.btn) : s.btn);
     btn.style.width = "100%"; btn.style.textAlign = "left";
     btn.onclick = () => addWin(s);
     $("winBtns").appendChild(btn);
@@ -1678,10 +1824,10 @@ function renderWinDetail() {
 function syncWin(force) {
   const wn = selectedWin; if (!wn || !$("winTxt")) return;
   const len = (wn.wall === "top" || wn.wall === "bottom") ? room.w : room.d;
-  const dimStr = currentLang === "en" ? `W${wn.w} × H${wn.h}` : `幅${wn.w} × 高${wn.h}`;
+  const dimStr = currentLang === "en" ? `W${wn.w} × H${wn.h}` : (currentLang === "zh" ? `宽${wn.w} × 高${wn.h}` : `幅${wn.w} × 高${wn.h}`);
   const sillStr = wn.sill
-    ? (currentLang === "en" ? ` / Sill ${wn.sill}` : ` / 床から${wn.sill}`)
-    : (currentLang === "en" ? " / Floor level" : " / 床まで開口");
+    ? (currentLang === "en" ? ` / Sill ${wn.sill}` : (currentLang === "zh" ? ` / 距地${wn.sill}` : ` / 床から${wn.sill}`))
+    : (currentLang === "en" ? " / Floor level" : (currentLang === "zh" ? " / 落地开窗" : " / 床まで開口"));
   $("winTxt").textContent = `${wallName(wn.wall)} / ${dimStr}${sillStr}`;
   if (force || document.activeElement !== $("inWW")) $("inWW").value = wn.w;
   if (force || document.activeElement !== $("inWP")) { $("inWP").max = len - wn.w; $("inWP").value = wn.pos; }
@@ -1698,11 +1844,11 @@ function applyWin() {
 
 // ---- 構造物（柱・PS・L字の欠け＝進入禁止ゾーン） ----
 const STRUCTS = [
-  { label: "柱",   labelEn: "Pillar",     btn: "柱 小 400×400",          btnEn: "Pillar Small 400×400",       w: 400,  d: 400,  start: 0 },
-  { label: "柱",   labelEn: "Pillar",     btn: "柱 標準 600×600",        btnEn: "Pillar Standard 600×600",    w: 600,  d: 600,  start: 0 },
-  { label: "柱",   labelEn: "Pillar",     btn: "柱 大 800×800",          btnEn: "Pillar Large 800×800",       w: 800,  d: 800,  start: 0 },
-  { label: "PS",   labelEn: "Pipe Space", btn: "パイプスペース 900×450", btnEn: "Pipe Space 900×450",         w: 900,  d: 450,  start: 1 },
-  { label: "欠け", labelEn: "Cutout",     btn: "L字の欠け（進入禁止）",  btnEn: "L-shape Cutout (Forbidden)", w: 1500, d: 1200, start: 2 },
+  { label: "柱",   labelEn: "Pillar",     labelZh: "立柱",   btn: "柱 小 400×400",          btnEn: "Pillar Small 400×400",       btnZh: "立柱 小号 400×400",          w: 400,  d: 400,  start: 0 },
+  { label: "柱",   labelEn: "Pillar",     labelZh: "立柱",   btn: "柱 標準 600×600",        btnEn: "Pillar Standard 600×600",    btnZh: "立柱 标准 600×600",          w: 600,  d: 600,  start: 0 },
+  { label: "柱",   labelEn: "Pillar",     labelZh: "立柱",   btn: "柱 大 800×800",          btnEn: "Pillar Large 800×800",       btnZh: "立柱 大号 800×800",          w: 800,  d: 800,  start: 0 },
+  { label: "PS",   labelEn: "Pipe Space", labelZh: "管道井", btn: "パイプスペース 900×450", btnEn: "Pipe Space 900×450",         btnZh: "管道井 900×450",             w: 900,  d: 450,  start: 1 },
+  { label: "欠け", labelEn: "Cutout",     labelZh: "凹角",   btn: "L字の欠け（進入禁止）",  btnEn: "L-shape Cutout (Forbidden)", btnZh: "凹角/L形缺角（禁止区域）",    w: 1500, d: 1200, start: 2 },
 ];
 function rectsOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.d && a.y + a.d > b.y;
@@ -1717,7 +1863,7 @@ function clampBlock(b) {
   b.y = clamp(snap(b.y), 0, room.d - b.d);
 }
 function addBlock(s) {
-  const b = { id: nextBlockId++, label: s.label, labelEn: s.labelEn, w: s.w, d: s.d, x: 0, y: 0 };
+  const b = { id: nextBlockId++, label: s.label, labelEn: s.labelEn, labelZh: s.labelZh, w: s.w, d: s.d, x: 0, y: 0 };
   b.w = Math.min(b.w, room.w); b.d = Math.min(b.d, room.d);
   // 四隅（左上→右上→右下→左下）のうち、既存の構造物と重ならない隅を探す
   for (let i = 0; i < 4; i++) {
@@ -1734,7 +1880,7 @@ function renderStructBtns() {
   $("structBtns").innerHTML = "";
   STRUCTS.forEach(s => {
     const btn = document.createElement("button");
-    btn.textContent = currentLang === "en" ? (s.btnEn || s.btn) : s.btn;
+    btn.textContent = currentLang === "zh" ? (s.btnZh || s.btn) : (currentLang === "en" ? (s.btnEn || s.btn) : s.btn);
     btn.style.width = "100%"; btn.style.textAlign = "left";
     btn.onclick = () => addBlock(s);
     $("structBtns").appendChild(btn);
@@ -1746,9 +1892,11 @@ function renderBlockDetail() {
   $("rot").disabled = false; $("del").disabled = false;
   $("dockEmpty").style.display = "none";
   $("dockBody").classList.add("on");
-  const blockTitle = currentLang === "en"
-    ? (b.label === "欠け" ? "L-shape Cutout (Forbidden Area)" : b.label === "PS" ? "Pipe Space / Protrusion" : "Pillar")
-    : (b.label === "欠け" ? "L字の欠け（進入禁止エリア）" : b.label === "PS" ? "パイプスペース・出っ張り" : "柱");
+  const blockTitle = currentLang === "zh"
+    ? (b.label === "欠け" ? "凹角/L形缺角（禁止区域）" : b.label === "PS" ? "管道井/突出结构" : "立柱")
+    : (currentLang === "en"
+      ? (b.label === "欠け" ? "L-shape Cutout (Forbidden Area)" : b.label === "PS" ? "Pipe Space / Protrusion" : "Pillar")
+      : (b.label === "欠け" ? "L字の欠け（進入禁止エリア）" : b.label === "PS" ? "パイプスペース・出っ張り" : "柱"));
   $("detailL").innerHTML = `
     <div class="dtitle"><b>${esc(blockTitle)}</b>
       <span class="sz" id="blockTxt"></span><span style="color:#888;font-size:11px">${t("structure")}</span></div>
@@ -1842,6 +1990,7 @@ function moveDoor(dr, p) {
 
 function hingeLabel(dr) {   // 室内から壁を見たときの左右
   const left = (dr.wall === "top" || dr.wall === "right") ? dr.hinge === "start" : dr.hinge === "end";
+  if (currentLang === "zh") return left ? "左合页" : "右合页";
   if (currentLang === "en") return left ? "Left Hinge" : "Right Hinge";
   return left ? "左吊元" : "右吊元";
 }
@@ -1903,6 +2052,7 @@ const AUTO_LAYOUTS = {
   work: {
     name: "ワンルーム・テレワーク型",
     nameEn: "Studio / Work from Home",
+    nameZh: "单身办公/居家工作型",
     door: (W, D) => ({ wall: "bottom", pos: snap(Math.max(0, W - 900)), w: Math.min(800, W), inward: true, hinge: "end" }),
     win: (W, D) => {
       const isFloor = W >= 4000;
@@ -1911,6 +2061,7 @@ const AUTO_LAYOUTS = {
         kind: isFloor ? "floor" : "waist",
         label: isFloor ? "掃き出し窓" : "腰高窓",
         labelEn: isFloor ? "Patio Window" : "Window",
+        labelZh: isFloor ? "落地窗" : "标准窗",
         wall: "top",
         pos: snap(clamp((W - w) / 2, 0, Math.max(0, W - w))),
         w,
@@ -1928,6 +2079,7 @@ const AUTO_LAYOUTS = {
   living: {
     name: "広々リビング型",
     nameEn: "Spacious Living Room",
+    nameZh: "宽敞起居客厅型",
     door: (W, D) => ({ wall: "bottom", pos: snap(Math.max(0, W - 900)), w: Math.min(800, W), inward: true, hinge: "end" }),
     win: (W, D) => {
       const isFloor = W >= 3600;
@@ -1936,6 +2088,7 @@ const AUTO_LAYOUTS = {
         kind: isFloor ? "floor" : "waist",
         label: isFloor ? "掃き出し窓" : "腰高窓",
         labelEn: isFloor ? "Patio Window" : "Window",
+        labelZh: isFloor ? "落地窗" : "标准窗",
         wall: "top",
         pos: snap(clamp((W - w) / 2, 0, Math.max(0, W - w))),
         w,
@@ -1953,6 +2106,7 @@ const AUTO_LAYOUTS = {
   sleep: {
     name: "シンプル睡眠特化型",
     nameEn: "Minimal Bedroom",
+    nameZh: "舒适卧室睡眠型",
     door: (W, D) => ({ wall: "bottom", pos: snap(clamp(100, 0, Math.max(0, W - 800))), w: Math.min(800, W), inward: true, hinge: "start" }),
     win: (W, D) => {
       const w = Math.min(1200, W);
@@ -1960,6 +2114,7 @@ const AUTO_LAYOUTS = {
         kind: "waist",
         label: "腰高窓",
         labelEn: "Window",
+        labelZh: "标准窗",
         wall: "top",
         pos: snap(clamp((W - w) / 2, 0, Math.max(0, W - w))),
         w,
@@ -2105,6 +2260,7 @@ function runAutoLayout(overrideType) {
       kind: rawWin.kind,
       label: rawWin.label,
       labelEn: rawWin.labelEn,
+      labelZh: rawWin.labelZh,
       wall: rawWin.wall,
       pos: wPos,
       w: rawWin.w,
@@ -2119,13 +2275,14 @@ function runAutoLayout(overrideType) {
   const placed = [];
   let failed = 0;
   layout.parts.forEach(spec => {
-    const c = CAT[spec.cat], [vn,,, vnEn = "Standard"] = c.variants[spec.v];
+    const c = CAT[spec.cat], [vn,,, vnEn = "Standard", vnZh = "标准"] = c.variants[spec.v];
     const pos = autoPlace(spec, placed, W, D);
     if (!pos) { failed++; return; }
     placed.push({
       id: nextId++, cat: c.key,
       name: vn === "標準" ? c.label : `${c.label}（${vn}）`,
       nameEn: vn === "標準" ? c.en : `${c.en} (${vnEn})`,
+      nameZh: vn === "標準" ? c.zh : `${c.zh}（${vnZh}）`,
       w: pos.w, d: pos.d, h: c.h, color: c.color, x: pos.x, y: pos.y,
       flip: ["sofa", "tv", "shelf"].includes(c.key) && pos.y + pos.d / 2 > D / 2,
     });
@@ -2138,9 +2295,11 @@ function runAutoLayout(overrideType) {
   draw();
   if (three && three.running) buildScene(false);
 
-  const toastMsg = currentLang === "en"
-    ? (failed ? `Layout generated (${failed} items could not fit)` : t("toastSuccess"))
-    : (failed ? `レイアウトを自動生成しました（部屋が狭く${failed}点は配置できませんでした）` : t("toastSuccess"));
+  const toastMsg = currentLang === "zh"
+    ? (failed ? `已自动推荐布局（房间偏小，有 ${failed} 件家具无法放置）` : t("toastSuccess"))
+    : (currentLang === "en"
+      ? (failed ? `Layout generated (${failed} items could not fit)` : t("toastSuccess"))
+      : (failed ? `レイアウトを自動生成しました（部屋が狭く${failed}点は配置できませんでした）` : t("toastSuccess")));
   toast(toastMsg);
 }
 $("autoRun").onclick = () => runAutoLayout();
@@ -2175,6 +2334,7 @@ function applyLanguage() {
   document.documentElement.lang = currentLang;
   if ($("langJa")) $("langJa").classList.toggle("active", currentLang === "ja");
   if ($("langEn")) $("langEn").classList.toggle("active", currentLang === "en");
+  if ($("langZh")) $("langZh").classList.toggle("active", currentLang === "zh");
 
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.getAttribute("data-i18n");
@@ -2200,6 +2360,7 @@ function applyLanguage() {
 
 $("langJa").onclick = () => setLanguage("ja");
 $("langEn").onclick = () => setLanguage("en");
+if ($("langZh")) $("langZh").onclick = () => setLanguage("zh");
 
 // 使い方ガイドの開閉
 const toggleHelp = e => {
@@ -2221,11 +2382,11 @@ document.addEventListener("click", e => {
   $("w").value = room.w; $("d").value = room.d; $("rh").value = room.h;
   $("wVal").textContent = room.w; $("dVal").textContent = room.d; $("hVal").textContent = room.h;
   doors.push({ id: nextDoorId++, wall: "bottom", pos: 2700, w: 800, inward: true, hinge: "end" });
-  wins.push({ id: nextWinId++, kind: "waist", label: "腰高窓", labelEn: "Window", wall: "top", pos: 1200, w: 1200, sill: 900, h: 1100 });
+  wins.push({ id: nextWinId++, kind: "waist", label: "腰高窓", labelEn: "Window", labelZh: "标准窗", wall: "top", pos: 1200, w: 1200, sill: 900, h: 1100 });
   const bed = CAT.bed, desk = CAT.desk;
   const [, bw, bd] = bed.variants[0], [, dw, dd] = desk.variants[0];
-  items.push({ id: nextId++, cat: "bed", name: "ベッド（シングル）", nameEn: "Bed (Single)", w: bw, d: bd, h: bed.h, color: bed.color, x: 0, y: 0 });
-  items.push({ id: nextId++, cat: "desk", name: "ワークデスク", nameEn: "Work Desk", w: dw, d: dd, h: desk.h, color: desk.color, x: room.w - dw, y: 0 });
+  items.push({ id: nextId++, cat: "bed", name: "ベッド（シングル）", nameEn: "Bed (Single)", nameZh: "单人床", w: bw, d: bd, h: bed.h, color: bed.color, x: 0, y: 0 });
+  items.push({ id: nextId++, cat: "desk", name: "ワークデスク", nameEn: "Work Desk", nameZh: "书桌/电脑桌", w: dw, d: dd, h: desk.h, color: desk.color, x: room.w - dw, y: 0 });
 })();
 
 applyLanguage();
