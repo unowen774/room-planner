@@ -58,6 +58,91 @@
   #donation-container { margin: 10px 0 8px; display: none; }
   .donation-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; background: #946ce6; color: #fff; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: 600; transition: background .15s, transform .1s; }
   .donation-btn:hover { background: #7c52d4; color: #fff; transform: translateY(-1px); }
+
+  /* ---- スポンサー広告プレースホルダー枠 (Carbon Ads / 開発者ツール風ミニマルデザイン) ---- */
+  .sponsor-ad-slot {
+    margin: 14px auto 10px;
+    width: 100%;
+    max-width: 280px;
+    min-height: 100px;
+    background: linear-gradient(145deg, #0f172a, #1e293b);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 10px 10px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+    position: relative;
+    overflow: hidden;
+  }
+  .sponsor-ad-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sponsor-ad-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .sponsor-fallback-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    text-decoration: none;
+    color: #f1f5f9;
+    transition: all .15s ease;
+    min-height: 58px;
+    box-sizing: border-box;
+  }
+  .sponsor-fallback-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(96, 165, 250, 0.4);
+    transform: translateY(-1px);
+  }
+  .sponsor-card-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+  }
+  .sponsor-card-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .sponsor-card-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.3;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sponsor-card-desc {
+    font-size: 10px;
+    color: #94a3b8;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   #main { flex: 1; display: flex; flex-direction: column; background: #fff; min-width: 0; min-height: 0; }
   #stage { flex: 1; position: relative; min-height: 0; }
   #dock { flex-shrink: 0; min-height: 96px; padding: 8px 16px; padding-bottom: max(8px, env(safe-area-inset-bottom, 12px)); border-top: 1px solid #d1d5db; background: #f9fafb; display: flex; align-items: center; }
@@ -1110,6 +1195,21 @@
     <a id="donationLink" class="donation-btn" target="_blank" rel="nofollow noopener">☕ 请作者喝杯咖啡（爱发电 / Afdian）</a>
   </div>
 
+  <!-- スポンサー枠 / Sponsor Ad Slot (Carbon Ads / Devtools Style) -->
+  <div id="sponsorAdSlot" class="sponsor-ad-slot">
+    <div class="sponsor-ad-hdr">
+      <span class="sponsor-ad-tag">SPONSORED</span>
+    </div>
+    <!-- 外部広告タグ（Google AdSense / Carbon Ads等）を挿入する場合はここに配置 -->
+    <a id="sponsorFallbackLink" class="sponsor-fallback-card" target="_blank" rel="nofollow noopener">
+      <div class="sponsor-card-icon" id="sponsorCardIcon">🛋️</div>
+      <div class="sponsor-card-text">
+        <div class="sponsor-card-title" id="sponsorCardTitle" data-i18n="sponsorTitle">RoomGridを応援する / おすすめインテリア</div>
+        <div class="sponsor-card-desc" id="sponsorCardDesc" data-i18n="sponsorDesc">お部屋にぴったりの家具・インテリアを探す</div>
+      </div>
+    </a>
+  </div>
+
   <div id="drawerLangSwitch" class="drawer-lang-switch">
     <div class="drawer-lang-label">
       <span>🌐</span> <span data-i18n="langLabel">言語 / Language</span>
@@ -1188,6 +1288,8 @@ try {
 
 const TRANSLATIONS = {
   ja: {
+    sponsorTitle: "RoomGridを応援する / おすすめインテリア",
+    sponsorDesc: "お部屋にぴったりの家具・インテリアを探す",
     welcomeTitle: "RoomGrid へようこそ",
     welcomeSubtitle: "超軽量・直感的な2D間取り配置と3D立体ビューシミュレーター",
     welcomeTagline: "2Dで直感配置 ⇄ ワンクリックで即座に3D立体化",
@@ -1321,6 +1423,8 @@ const TRANSLATIONS = {
     shopeeSearch: "蝦皮購物（Shopee）でこのサイズの家具を探す",
   },
   en: {
+    sponsorTitle: "Support RoomGrid / Featured Furniture",
+    sponsorDesc: "Explore featured furniture & decor for your space",
     welcomeTitle: "Welcome to RoomGrid",
     welcomeSubtitle: "Ultra-light 2D floor planner & instant 3D room visualizer",
     welcomeTagline: "Plan in 2D ⇄ Preview in 3D instantly",
@@ -1454,6 +1558,8 @@ const TRANSLATIONS = {
     shopeeSearch: "Search on Shopee by size",
   },
   zh: {
+    sponsorTitle: "支持 RoomGrid / 精选家具",
+    sponsorDesc: "为作者充电支持持续维护，或探索精选家具",
     welcomeTitle: "欢迎使用 RoomGrid",
     welcomeSubtitle: "超轻量・直觉2D户型规划与即时3D立体空间模拟器",
     welcomeTagline: "2D直觉规划 ⇄ 一键立体3D预览",
@@ -1587,6 +1693,8 @@ const TRANSLATIONS = {
     shopeeSearch: "在虾皮购物 (Shopee) 搜索该尺寸家具",
   },
   "zh-TW": {
+    sponsorTitle: "支持 RoomGrid / 精選家具",
+    sponsorDesc: "為您的空間尋找合適的家具與家飾選品",
     welcomeTitle: "歡迎使用 RoomGrid",
     welcomeSubtitle: "超輕量・直覺2D格局配置與即時3D立體空間模擬器",
     welcomeTagline: "2D直覺規劃 ⇄ 一鍵立體3D預覽",
@@ -4020,6 +4128,29 @@ function updateWizardCurrentDim() {
   el.textContent = `${label} (${room.w} × ${room.d} mm)`;
 }
 
+function updateSponsorAdLink() {
+  const lk = $("sponsorFallbackLink");
+  if (!lk) return;
+  const icon = $("sponsorCardIcon");
+  if (currentLang === "zh") {
+    lk.href = AFFILIATE_CONFIG.afdianUrl || "https://afdian.com";
+    if (icon) icon.textContent = "☕";
+  } else if (currentLang === "zh-TW") {
+    lk.href = "https://shopee.tw/search?keyword=" + encodeURIComponent("質感家具 居家生活");
+    if (icon) icon.textContent = "🛋️";
+  } else if (currentLang === "en") {
+    let url = "https://www.amazon.com/s?k=" + encodeURIComponent("furniture home decor");
+    if (AFFILIATE_CONFIG.amazonUsTag) url += "&tag=" + encodeURIComponent(AFFILIATE_CONFIG.amazonUsTag);
+    lk.href = url;
+    if (icon) icon.textContent = "🛋️";
+  } else {
+    let url = "https://www.amazon.co.jp/s?k=" + encodeURIComponent("家具 インテリア");
+    if (AFFILIATE_CONFIG.amazonTag) url += "&tag=" + encodeURIComponent(AFFILIATE_CONFIG.amazonTag);
+    lk.href = url;
+    if (icon) icon.textContent = "🛋️";
+  }
+}
+
 // ウィザードモーダル制御
 function openWizardModal() {
   closeSidebar();
@@ -4165,6 +4296,7 @@ function applyLanguage() {
   }
 
   updateWizardCurrentDim();
+  updateSponsorAdLink();
   renderStructBtns();
   renderWinBtns();
   renderCats();
